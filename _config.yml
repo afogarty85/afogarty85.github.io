@@ -212,6 +212,14 @@ defaults:
       layout: single
       author_profile: true
 
+  # _NLP
+  - scope:
+      path: ""
+      type: NLP
+    values:
+      layout: single
+      author_profile: true
+
   # _applied
   - scope:
       path: ""
