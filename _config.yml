@@ -193,6 +193,10 @@ collections:
   ML:
     output: true
     permalink: /:collection/:path/
+  NLP:
+    output: true
+    permalink: /:collection/:path/
+
 
 # Defaults
 defaults:
