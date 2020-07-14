@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Andrew Fogarty" />
+
+
+<title>Numerical Optimization</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Numerical Optimization</h1>
+<h4 class="author">Andrew Fogarty</h4>
+<h4 class="date">5/23/2020</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#numerical-optimization"><span class="toc-section-number">2</span> Numerical Optimization</a></li>
+<li><a href="#gradient-descent"><span class="toc-section-number">3</span> Gradient Descent</a>
+<ul>
+<li><a href="#quantity-of-interest-negative-log-likelihood"><span class="toc-section-number">3.1</span> Quantity of Interest: Negative Log-Likelihood</a></li>
+<li><a href="#quantity-of-interest-gradient"><span class="toc-section-number">3.2</span> Quantity of Interest: Gradient</a></li>
+<li><a href="#gradient-descent-optimization-in-steps"><span class="toc-section-number">3.3</span> Gradient Descent Optimization: In Steps</a></li>
+<li><a href="#gradient-descent-optimization-automated"><span class="toc-section-number">3.4</span> Gradient Descent Optimization: Automated</a></li>
+</ul></li>
+<li><a href="#stochastic-gradient-descent"><span class="toc-section-number">4</span> Stochastic Gradient Descent</a></li>
+<li><a href="#stochastic-gradient-descent-optimization-automated"><span class="toc-section-number">5</span> Stochastic Gradient Descent Optimization: Automated</a></li>
+<li><a href="#quasi-newton-bfgs"><span class="toc-section-number">6</span> Quasi Newton: BFGS</a></li>
+<li><a href="#sources"><span class="toc-section-number">7</span> Sources</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level1" number="1">
+<h1 number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>Maximum likelihood fixes our observed data and asks: What parameter values most likely generated the data we have? In a likelihood framework, our data is viewed as a joint probability as a function of parameter values for a specified mass or density function. In this case, the joint probability is being maximized with respect to the parameters. A maximum likelihood estimate is one that provides the density or mass function with the highest likelihood of generating the observed data.</p>
+<p>Numerical optimizers provide the means to estimate our parameters by finding the values that maximize the likelihood of generating our data. This guide helps us understand how optimization algorithms find the best estimates for our coefficients in a step-by-step process.</p>
+</div>
+<div id="numerical-optimization" class="section level1" number="2">
+<h1 number="2"><span class="header-section-number">2</span> Numerical Optimization</h1>
+<p>In the chunk below, some binary synthetic data is created for use in logistic regression.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a>y &lt;-<span class="st"> </span><span class="kw">sample</span>(<span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="dt">size =</span><span class="dv">500</span>, <span class="dt">replace=</span><span class="ot">TRUE</span>)</span>
+<span id="cb1-2"><a href="#cb1-2"></a>x1 &lt;-<span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">500</span>)</span>
+<span id="cb1-3"><a href="#cb1-3"></a>x2 &lt;-<span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">500</span>)</span>
+<span id="cb1-4"><a href="#cb1-4"></a>intercept &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="dv">1</span>, <span class="dv">500</span>)</span>
+<span id="cb1-5"><a href="#cb1-5"></a>X &lt;-<span class="st"> </span><span class="kw">data.frame</span>(intercept, x1, x2)</span>
+<span id="cb1-6"><a href="#cb1-6"></a>X &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(X)</span></code></pre></div>
+<p>When calculating the MLE, most programs iterate some numerical optimization procedure. These algorithms continuously recalculate until the change in the current value falls below a specified tolerance – when the algorithm is then said to have converged. The workhorse for finding extrema of log-likelihood functions are hill-climbing algorithms that use the information in the derivative of the log-likelihood function to climb to a maximum or descend to a minimum. There are many algorithms for computing the MLE, such as Newton-Raphson (<code>NR</code>), Quasi-Newton (<code>BFGS</code>), and Gradient Descent.</p>
+<p>We can get coefficients by either:</p>
+<ol style="list-style-type: decimal">
+<li>Maximizing the log-likelihood, or</li>
+<li>Minimizing the negative log-likelihood</li>
+</ol>
+</div>
+<div id="gradient-descent" class="section level1" number="3">
+<h1 number="3"><span class="header-section-number">3</span> Gradient Descent</h1>
+<p>In this section, we minimize the negative log-likelihood to arrive at our parameters that most likely generated our data using gradient descent. Gradient descent is optimal because it avoids computing the hessian (the second derivative) which can be computationally expensive or difficult given certain functions. Instead, it uses the gradient to choose the direction for the next update. Gradient descent is very popular for machine learning methods, particularly for high dimensional computation as it avoids computing the hessian.</p>
+<p>To find our coefficients, we need to compute two quantities of interest: (1) the negative log-likelihood, and (2) its first derivative, the gradient. For large <code>N</code> problems the computation may become prohibitive. Gradient descent, often called “standard” or “batch” gradient descent uses all data points for computing the next search direction. In the next section, we show how we can circumvent this by using Stochastic Gradient Descent.</p>
+<div id="quantity-of-interest-negative-log-likelihood" class="section level2" number="3.1">
+<h2 number="3.1"><span class="header-section-number">3.1</span> Quantity of Interest: Negative Log-Likelihood</h2>
+<p>The log-likelihood is: <span class="math display">\[\text{log} L(\theta|y) = \sum_{i=1}^n [y_{i}*log(\theta_{i}) + (1-y_{i})*log(1-\theta_{i})] \]</span> which, programmed into R, looks like the following:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>negLL &lt;-<span class="st"> </span><span class="cf">function</span>(b,X,y){  <span class="co"># b = betas</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a>    p &lt;-<span class="st"> </span><span class="kw">as.vector</span>(<span class="dv">1</span><span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(<span class="op">-</span>X <span class="op">%*%</span><span class="st"> </span>b)))  <span class="co"># &quot;standard logistic function&quot;; 1/1+exp(-X)</span></span>
+<span id="cb2-3"><a href="#cb2-3"></a>    <span class="op">-</span><span class="kw">sum</span>(y<span class="op">*</span><span class="kw">log</span>(p) <span class="op">+</span><span class="st"> </span>(<span class="dv">1</span><span class="op">-</span>y)<span class="op">*</span><span class="kw">log</span>(<span class="dv">1</span><span class="op">-</span>p))   <span class="co"># negative log-likelihood</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a>    } </span></code></pre></div>
+</div>
+<div id="quantity-of-interest-gradient" class="section level2" number="3.2">
+<h2 number="3.2"><span class="header-section-number">3.2</span> Quantity of Interest: Gradient</h2>
+<p>The gradient is: <span class="math display">\[\sum_{i=1}^n (y_{i} - \theta_{i})*X_{ij} \]</span> which, programmed into R, looks like the following:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>gradient &lt;-<span class="st"> </span><span class="cf">function</span>(b,X,y){</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  p &lt;-<span class="st"> </span><span class="kw">as.vector</span>(<span class="dv">1</span><span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(<span class="op">-</span>X <span class="op">%*%</span><span class="st"> </span>b)))</span>
+<span id="cb3-3"><a href="#cb3-3"></a>  <span class="op">-</span><span class="kw">apply</span>(((y <span class="op">-</span><span class="st"> </span>p)<span class="op">*</span>X),<span class="dv">2</span>,sum) <span class="co"># derivative of cost function: (p) = y-hat</span></span>
+<span id="cb3-4"><a href="#cb3-4"></a>  } <span class="co"># gradient of the negative log-likelihood; a vector of partial derivatives</span></span></code></pre></div>
+</div>
+<div id="gradient-descent-optimization-in-steps" class="section level2" number="3.3">
+<h2 number="3.3"><span class="header-section-number">3.3</span> Gradient Descent Optimization: In Steps</h2>
+<p>Next, we step through the optimization algorithm through a few steps manually so we can better understand how our coefficients get updated as we minimize our negative log-likelihood.</p>
+<p>First, we instantiate some initial values for our coefficients and a learning rate.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>beta =<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>)  <span class="co"># for intercept and two betas</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>learning_rate =<span class="st"> </span><span class="fl">0.0001</span>  <span class="co"># learning rate</span></span></code></pre></div>
+<p>Next, we step through the process iteratively before proceeding to a while loop. In the code below, we: (1) save the current beta coefficients separately as the old, (2) multiply our learning rate by the first derivative, obtaining the values at which we nudge our coefficients, either positively or negatively, (3) update our current beta by subtracting the error, (4) use the new betas to update our negative log-likelihood, and finally (5) calculate the euclidean distance between our beta estimates which we will use to stop iterating once we reach a specified tolerance.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># save the previous value</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a>beta0 =<span class="st"> </span>beta</span>
+<span id="cb5-3"><a href="#cb5-3"></a></span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="co"># calculate h, the increment</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a>h =<span class="st"> </span>learning_rate<span class="op">*</span><span class="kw">gradient</span>(beta, X, y)</span>
+<span id="cb5-6"><a href="#cb5-6"></a></span>
+<span id="cb5-7"><a href="#cb5-7"></a><span class="co"># update beta</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>beta =<span class="st"> </span>beta <span class="op">-</span><span class="st"> </span>h <span class="co"># subtract to minimize</span></span>
+<span id="cb5-9"><a href="#cb5-9"></a></span>
+<span id="cb5-10"><a href="#cb5-10"></a><span class="co"># update the log likelihood </span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>logL =<span class="st"> </span><span class="kw">negLL</span>(beta, X, y)</span>
+<span id="cb5-12"><a href="#cb5-12"></a></span>
+<span id="cb5-13"><a href="#cb5-13"></a><span class="co"># calculate the euclidean distance</span></span>
+<span id="cb5-14"><a href="#cb5-14"></a>eps  =<span class="st"> </span><span class="kw">sqrt</span>(<span class="kw">sum</span>((beta <span class="op">-</span><span class="st"> </span>beta0)<span class="op">^</span><span class="dv">2</span>))</span></code></pre></div>
+</div>
+<div id="gradient-descent-optimization-automated" class="section level2" number="3.4">
+<h2 number="3.4"><span class="header-section-number">3.4</span> Gradient Descent Optimization: Automated</h2>
+<p>In this section, we utilize a while loop to execute our numerical optimization using gradient descent. This while loop will continue until the euclidean distance between our <span class="math inline">\(\beta\)</span>s stop updating past our specified tolerance.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>tol =<span class="st"> </span><span class="dv">10</span><span class="op">^-</span><span class="dv">6</span>  <span class="co"># set the threshold for convergence</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>beta =<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>)  <span class="co"># for intercept and two betas</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a>maxit =<span class="st"> </span><span class="dv">1000</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>iter =<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a>learning_rate =<span class="st"> </span><span class="fl">0.0001</span>  <span class="co"># learning rate</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a>eps =<span class="st"> </span><span class="ot">Inf</span></span>
+<span id="cb6-7"><a href="#cb6-7"></a></span>
+<span id="cb6-8"><a href="#cb6-8"></a>start =<span class="st"> </span><span class="kw">Sys.time</span>()</span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="cf">while</span>(eps <span class="op">&gt;</span><span class="st"> </span>tol <span class="op">&amp;</span><span class="st"> </span>iter <span class="op">&lt;</span><span class="st"> </span>maxit){</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  <span class="co"># save the previous value</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a>  beta0 =<span class="st"> </span>beta</span>
+<span id="cb6-12"><a href="#cb6-12"></a>  </span>
+<span id="cb6-13"><a href="#cb6-13"></a>  <span class="co"># calculate h, the increment</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a>  h =<span class="st"> </span>learning_rate<span class="op">*</span><span class="kw">gradient</span>(beta, X, y)</span>
+<span id="cb6-15"><a href="#cb6-15"></a>  </span>
+<span id="cb6-16"><a href="#cb6-16"></a>  <span class="co"># update beta</span></span>
+<span id="cb6-17"><a href="#cb6-17"></a>  beta =<span class="st"> </span>beta <span class="op">-</span><span class="st"> </span>h <span class="co"># subtract to minimize</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a>  </span>
+<span id="cb6-19"><a href="#cb6-19"></a>  <span class="co"># update the log likelihood </span></span>
+<span id="cb6-20"><a href="#cb6-20"></a>  logL =<span class="st"> </span><span class="kw">negLL</span>(beta, X, y)</span>
+<span id="cb6-21"><a href="#cb6-21"></a>  </span>
+<span id="cb6-22"><a href="#cb6-22"></a>  <span class="co"># calculate the euclidean distance</span></span>
+<span id="cb6-23"><a href="#cb6-23"></a>  eps  =<span class="st"> </span><span class="kw">sqrt</span>(<span class="kw">sum</span>((beta <span class="op">-</span><span class="st"> </span>beta0)<span class="op">^</span><span class="dv">2</span>))</span>
+<span id="cb6-24"><a href="#cb6-24"></a>  </span>
+<span id="cb6-25"><a href="#cb6-25"></a>  <span class="co"># update the iteration number</span></span>
+<span id="cb6-26"><a href="#cb6-26"></a>  iter =<span class="st"> </span>iter <span class="op">+</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb6-27"><a href="#cb6-27"></a>  <span class="cf">if</span>(iter <span class="op">==</span><span class="st"> </span>maxit) <span class="kw">warning</span>(<span class="st">&quot;Iteration limit reached without convergence&quot;</span>)</span>
+<span id="cb6-28"><a href="#cb6-28"></a>  </span>
+<span id="cb6-29"><a href="#cb6-29"></a>  <span class="co"># print out info to keep track</span></span>
+<span id="cb6-30"><a href="#cb6-30"></a>  <span class="cf">if</span>(<span class="kw">floor</span>(iter<span class="op">/</span><span class="dv">20</span>) <span class="op">==</span><span class="st"> </span><span class="kw">ceiling</span>(iter<span class="op">/</span><span class="dv">20</span>)) <span class="kw">cat</span>(<span class="kw">sprintf</span>(<span class="st">&quot;Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f</span><span class="ch">\n</span><span class="st">&quot;</span>,iter, logL,beta[<span class="dv">1</span>],beta[<span class="dv">2</span>],beta[<span class="dv">3</span>],eps))</span>
+<span id="cb6-31"><a href="#cb6-31"></a>}</span></code></pre></div>
+<pre><code>## Iter: 20 logL: 346.43 beta0: 0.012 beta1: -0.012 beta2: 0.002 eps:0.000759
+## Iter: 40 logL: 346.34 beta0: 0.022 beta1: -0.021 beta2: 0.003 eps:0.000594
+## Iter: 60 logL: 346.28 beta0: 0.030 beta1: -0.028 beta2: 0.004 eps:0.000465
+## Iter: 80 logL: 346.25 beta0: 0.036 beta1: -0.033 beta2: 0.005 eps:0.000364
+## Iter: 100 logL: 346.23 beta0: 0.040 beta1: -0.038 beta2: 0.006 eps:0.000285
+## Iter: 120 logL: 346.22 beta0: 0.044 beta1: -0.041 beta2: 0.006 eps:0.000223
+## Iter: 140 logL: 346.21 beta0: 0.047 beta1: -0.044 beta2: 0.006 eps:0.000175
+## Iter: 160 logL: 346.20 beta0: 0.049 beta1: -0.046 beta2: 0.006 eps:0.000137
+## Iter: 180 logL: 346.20 beta0: 0.050 beta1: -0.048 beta2: 0.006 eps:0.000107
+## Iter: 200 logL: 346.20 beta0: 0.052 beta1: -0.049 beta2: 0.006 eps:0.000084
+## Iter: 220 logL: 346.20 beta0: 0.053 beta1: -0.051 beta2: 0.006 eps:0.000066
+## Iter: 240 logL: 346.20 beta0: 0.054 beta1: -0.051 beta2: 0.006 eps:0.000052
+## Iter: 260 logL: 346.20 beta0: 0.054 beta1: -0.052 beta2: 0.006 eps:0.000041
+## Iter: 280 logL: 346.20 beta0: 0.055 beta1: -0.053 beta2: 0.006 eps:0.000032
+## Iter: 300 logL: 346.20 beta0: 0.055 beta1: -0.053 beta2: 0.006 eps:0.000025
+## Iter: 320 logL: 346.20 beta0: 0.055 beta1: -0.053 beta2: 0.006 eps:0.000020
+## Iter: 340 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000015
+## Iter: 360 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000012
+## Iter: 380 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000010
+## Iter: 400 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000008
+## Iter: 420 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000006
+## Iter: 440 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000005
+## Iter: 460 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000004
+## Iter: 480 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000003
+## Iter: 500 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000002
+## Iter: 520 logL: 346.20 beta0: 0.056 beta1: -0.054 beta2: 0.006 eps:0.000002
+## Iter: 540 logL: 346.20 beta0: 0.057 beta1: -0.054 beta2: 0.006 eps:0.000001
+## Iter: 560 logL: 346.20 beta0: 0.057 beta1: -0.054 beta2: 0.006 eps:0.000001</code></pre>
+<p>As we can see, we have: (1) minimized our negative log-likelihood, and (2) found our estimates of beta iteratively until we reached our specified tolerance (0.000001).</p>
+<p>To compare our results with that of R’s <code>glm</code> function, consider the following:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>fit.glm &lt;-<span class="st"> </span><span class="kw">glm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2, <span class="dt">data =</span> <span class="kw">data.frame</span>(X), <span class="dt">family=</span><span class="kw">binomial</span>(<span class="dt">link=</span><span class="st">&quot;logit&quot;</span>)) </span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="kw">round</span>(fit.glm<span class="op">$</span>coefficients, <span class="dv">3</span>)</span></code></pre></div>
+<pre><code>## (Intercept)          x1          x2 
+##       0.057      -0.054       0.006</code></pre>
+<p>As we can see, we get identical results.</p>
+</div>
+</div>
+<div id="stochastic-gradient-descent" class="section level1" number="4">
+<h1 number="4"><span class="header-section-number">4</span> Stochastic Gradient Descent</h1>
+<p>Stochastic gradient descent randomly sub-samples the data and performs an update for <span class="math inline">\(\beta\)</span> with a random observation drawn from the data, rather than a full pass over the data. The same procedure continues as above, except we sample our data and iterate until convergence. While in this example stochastic gradient descent will perform slower than standard gradient descent, in situations where we have more data and higher dimensional features, stochastic gradient descent will outperform gradient descent significantly.</p>
+</div>
+<div id="stochastic-gradient-descent-optimization-automated" class="section level1" number="5">
+<h1 number="5"><span class="header-section-number">5</span> Stochastic Gradient Descent Optimization: Automated</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a><span class="co"># the start</span></span>
+<span id="cb10-2"><a href="#cb10-2"></a>tol =<span class="st"> </span><span class="dv">10</span><span class="op">^-</span><span class="dv">9</span>  <span class="co"># lowered threshold to ensure convergence</span></span>
+<span id="cb10-3"><a href="#cb10-3"></a>beta =<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>)  <span class="co"># for intercept and two betas</span></span>
+<span id="cb10-4"><a href="#cb10-4"></a>maxit =<span class="st"> </span><span class="dv">100000</span>  <span class="co"># increased iteration limit</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a>iter =<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb10-6"><a href="#cb10-6"></a>learning_rate =<span class="st"> </span><span class="fl">0.0001</span></span>
+<span id="cb10-7"><a href="#cb10-7"></a>subsample.size =<span class="st"> </span><span class="dv">10</span>  <span class="co"># sample 10 observations a time</span></span>
+<span id="cb10-8"><a href="#cb10-8"></a>eps =<span class="st"> </span><span class="dv">100000</span></span>
+<span id="cb10-9"><a href="#cb10-9"></a>epscount =<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb10-10"><a href="#cb10-10"></a>logL =<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>, maxit)</span>
+<span id="cb10-11"><a href="#cb10-11"></a></span>
+<span id="cb10-12"><a href="#cb10-12"></a><span class="co"># given this, the result below will be the same as NR</span></span>
+<span id="cb10-13"><a href="#cb10-13"></a>start =<span class="st"> </span><span class="kw">Sys.time</span>()</span>
+<span id="cb10-14"><a href="#cb10-14"></a><span class="cf">while</span>(eps <span class="op">&gt;</span><span class="st"> </span>tol <span class="op">&amp;</span><span class="st"> </span>iter <span class="op">&lt;</span><span class="st"> </span>maxit <span class="op">&amp;</span><span class="st"> </span>epscount <span class="op">&lt;</span><span class="st"> </span><span class="dv">4</span>){</span>
+<span id="cb10-15"><a href="#cb10-15"></a>  <span class="co"># save the previous value</span></span>
+<span id="cb10-16"><a href="#cb10-16"></a>  beta0 =<span class="st"> </span>beta</span>
+<span id="cb10-17"><a href="#cb10-17"></a>  </span>
+<span id="cb10-18"><a href="#cb10-18"></a>  <span class="co"># take subsample</span></span>
+<span id="cb10-19"><a href="#cb10-19"></a>  index =<span class="st"> </span><span class="kw">sample</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">500</span>, <span class="dt">size =</span> subsample.size,<span class="dt">replace =</span> T)</span>
+<span id="cb10-20"><a href="#cb10-20"></a>  </span>
+<span id="cb10-21"><a href="#cb10-21"></a>  <span class="co"># calculate h, the increment</span></span>
+<span id="cb10-22"><a href="#cb10-22"></a>  h =<span class="st"> </span>learning_rate<span class="op">*</span><span class="kw">gradient</span>(beta, X[index,], y[index])</span>
+<span id="cb10-23"><a href="#cb10-23"></a>  </span>
+<span id="cb10-24"><a href="#cb10-24"></a>  <span class="co"># update lambda</span></span>
+<span id="cb10-25"><a href="#cb10-25"></a>  beta =<span class="st"> </span>beta <span class="op">-</span><span class="st"> </span>h</span>
+<span id="cb10-26"><a href="#cb10-26"></a>  </span>
+<span id="cb10-27"><a href="#cb10-27"></a>  <span class="co"># update the log likelihood </span></span>
+<span id="cb10-28"><a href="#cb10-28"></a>  logL[iter] =<span class="st"> </span><span class="kw">negLL</span>(beta, X, y)</span>
+<span id="cb10-29"><a href="#cb10-29"></a>  </span>
+<span id="cb10-30"><a href="#cb10-30"></a>  <span class="co"># use relative change in logL from 1000 iterations prior</span></span>
+<span id="cb10-31"><a href="#cb10-31"></a>  <span class="co"># this is because randomness between single iterations large, smooths out</span></span>
+<span id="cb10-32"><a href="#cb10-32"></a>  <span class="cf">if</span>(iter <span class="op">&gt;</span><span class="st"> </span><span class="dv">1000</span>) eps  =<span class="st"> </span><span class="kw">abs</span>(logL[iter] <span class="op">-</span>logL[iter<span class="dv">-1000</span>])<span class="op">/</span><span class="kw">abs</span>(logL[iter<span class="dv">-1000</span>])</span>
+<span id="cb10-33"><a href="#cb10-33"></a>  </span>
+<span id="cb10-34"><a href="#cb10-34"></a>  <span class="co"># we use this count to protect against randomly hitting the convergene limit early</span></span>
+<span id="cb10-35"><a href="#cb10-35"></a>  <span class="cf">if</span>(eps <span class="op">&lt;</span><span class="st"> </span>tol) epscount =<span class="st"> </span>epscount<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb10-36"><a href="#cb10-36"></a>  </span>
+<span id="cb10-37"><a href="#cb10-37"></a>  <span class="co"># update the iteration number</span></span>
+<span id="cb10-38"><a href="#cb10-38"></a>  iter =<span class="st"> </span>iter <span class="op">+</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb10-39"><a href="#cb10-39"></a>  <span class="cf">if</span>(iter <span class="op">==</span><span class="st"> </span>maxit) <span class="kw">warning</span>(<span class="st">&quot;Iteration limit reached without convergence&quot;</span>)</span>
+<span id="cb10-40"><a href="#cb10-40"></a>  </span>
+<span id="cb10-41"><a href="#cb10-41"></a>  <span class="co"># print out info to keep track</span></span>
+<span id="cb10-42"><a href="#cb10-42"></a>  <span class="cf">if</span>(<span class="kw">floor</span>(iter<span class="op">/</span><span class="dv">200</span>) <span class="op">==</span><span class="st"> </span><span class="kw">ceiling</span>(iter<span class="op">/</span><span class="dv">200</span>)) <span class="kw">cat</span>(<span class="kw">sprintf</span>(<span class="st">&quot;Iter: %d logL: %.2f beta0: %.3f beta1: %.3f beta2: %.3f eps:%f</span><span class="ch">\n</span><span class="st">&quot;</span>,iter, logL[iter<span class="dv">-1</span>],beta[<span class="dv">1</span>],beta[<span class="dv">2</span>],beta[<span class="dv">3</span>],eps))</span>
+<span id="cb10-43"><a href="#cb10-43"></a>}</span></code></pre></div>
+<pre><code>## Iter: 200 logL: 346.52 beta0: 0.006 beta1: -0.000 beta2: 0.006 eps:100000.000000
+## Iter: 400 logL: 346.48 beta0: 0.014 beta1: -0.000 beta2: 0.007 eps:100000.000000
+## Iter: 600 logL: 346.47 beta0: 0.015 beta1: -0.001 beta2: 0.011 eps:100000.000000
+## Iter: 800 logL: 346.45 beta0: 0.015 beta1: -0.005 beta2: 0.006 eps:100000.000000
+## Iter: 1000 logL: 346.41 beta0: 0.018 beta1: -0.008 beta2: 0.008 eps:100000.000000
+## Iter: 1200 logL: 346.42 beta0: 0.018 beta1: -0.007 beta2: 0.006 eps:0.000297
+## Iter: 1400 logL: 346.41 beta0: 0.021 beta1: -0.007 beta2: 0.009 eps:0.000211
+## Iter: 1600 logL: 346.40 beta0: 0.020 beta1: -0.009 beta2: 0.008 eps:0.000200
+## Iter: 1800 logL: 346.39 beta0: 0.023 beta1: -0.010 beta2: 0.007 eps:0.000181
+## Iter: 2000 logL: 346.38 beta0: 0.025 beta1: -0.009 beta2: 0.007 eps:0.000093
+## Iter: 2200 logL: 346.37 beta0: 0.025 beta1: -0.012 beta2: 0.012 eps:0.000158
+## Iter: 2400 logL: 346.32 beta0: 0.030 beta1: -0.017 beta2: 0.011 eps:0.000255
+## Iter: 2600 logL: 346.30 beta0: 0.034 beta1: -0.021 beta2: 0.010 eps:0.000298
+## Iter: 2800 logL: 346.29 beta0: 0.034 beta1: -0.022 beta2: 0.007 eps:0.000269
+## Iter: 3000 logL: 346.29 beta0: 0.033 beta1: -0.023 beta2: 0.003 eps:0.000265
+## Iter: 3200 logL: 346.31 beta0: 0.031 beta1: -0.020 beta2: 0.001 eps:0.000170
+## Iter: 3400 logL: 346.28 beta0: 0.037 beta1: -0.023 beta2: 0.003 eps:0.000111
+## Iter: 3600 logL: 346.27 beta0: 0.040 beta1: -0.024 beta2: 0.004 eps:0.000079
+## Iter: 3800 logL: 346.28 beta0: 0.040 beta1: -0.021 beta2: 0.008 eps:0.000031
+## Iter: 4000 logL: 346.27 beta0: 0.042 beta1: -0.024 beta2: 0.011 eps:0.000066
+## Iter: 4200 logL: 346.26 beta0: 0.045 beta1: -0.025 beta2: 0.012 eps:0.000145
+## Iter: 4400 logL: 346.25 beta0: 0.052 beta1: -0.028 beta2: 0.016 eps:0.000100
+## Iter: 4600 logL: 346.24 beta0: 0.052 beta1: -0.028 beta2: 0.013 eps:0.000074
+## Iter: 4800 logL: 346.23 beta0: 0.053 beta1: -0.033 beta2: 0.013 eps:0.000152
+## Iter: 5000 logL: 346.23 beta0: 0.050 beta1: -0.034 beta2: 0.009 eps:0.000122
+## Iter: 5200 logL: 346.22 beta0: 0.049 beta1: -0.039 beta2: 0.010 eps:0.000121
+## Iter: 5400 logL: 346.21 beta0: 0.051 beta1: -0.040 beta2: 0.005 eps:0.000108
+## Iter: 5600 logL: 346.21 beta0: 0.051 beta1: -0.043 beta2: 0.005 eps:0.000108
+## Iter: 5800 logL: 346.20 beta0: 0.051 beta1: -0.044 beta2: 0.006 eps:0.000070
+## Iter: 6000 logL: 346.20 beta0: 0.049 beta1: -0.049 beta2: 0.003 eps:0.000065
+## Iter: 6200 logL: 346.20 beta0: 0.054 beta1: -0.048 beta2: 0.001 eps:0.000044
+## Iter: 6400 logL: 346.20 beta0: 0.053 beta1: -0.045 beta2: 0.001 eps:0.000016
+## Iter: 6600 logL: 346.21 beta0: 0.056 beta1: -0.043 beta2: -0.001 eps:0.000005
+## Iter: 6800 logL: 346.21 beta0: 0.058 beta1: -0.043 beta2: 0.000 eps:0.000006
+## Iter: 7000 logL: 346.20 beta0: 0.059 beta1: -0.049 beta2: -0.001 eps:0.000003
+## Iter: 7200 logL: 346.20 beta0: 0.060 beta1: -0.048 beta2: -0.003 eps:0.000008
+## Iter: 7400 logL: 346.20 beta0: 0.060 beta1: -0.047 beta2: -0.002 eps:0.000001
+## Iter: 7600 logL: 346.20 beta0: 0.057 beta1: -0.048 beta2: -0.002 eps:0.000013
+## Iter: 7800 logL: 346.21 beta0: 0.058 beta1: -0.046 beta2: -0.003 eps:0.000003
+## Iter: 8000 logL: 346.20 beta0: 0.058 beta1: -0.049 beta2: -0.001 eps:0.000003
+## Iter: 8200 logL: 346.21 beta0: 0.056 beta1: -0.049 beta2: -0.004 eps:0.000005
+## Iter: 8400 logL: 346.21 beta0: 0.054 beta1: -0.046 beta2: -0.004 eps:0.000007
+## Iter: 8600 logL: 346.21 beta0: 0.053 beta1: -0.048 beta2: -0.006 eps:0.000015
+## Iter: 8800 logL: 346.21 beta0: 0.053 beta1: -0.056 beta2: -0.005 eps:0.000002
+## Iter: 9000 logL: 346.21 beta0: 0.055 beta1: -0.056 beta2: -0.006 eps:0.000019
+## Iter: 9200 logL: 346.21 beta0: 0.056 beta1: -0.057 beta2: -0.008 eps:0.000013
+## Iter: 9400 logL: 346.21 beta0: 0.053 beta1: -0.055 beta2: -0.007 eps:0.000007
+## Iter: 9600 logL: 346.21 beta0: 0.050 beta1: -0.054 beta2: -0.005 eps:0.000005
+## Iter: 9800 logL: 346.20 beta0: 0.051 beta1: -0.055 beta2: -0.001 eps:0.000011
+## Iter: 10000 logL: 346.20 beta0: 0.052 beta1: -0.054 beta2: 0.001 eps:0.000021
+## Iter: 10200 logL: 346.20 beta0: 0.053 beta1: -0.056 beta2: -0.001 eps:0.000025
+## Iter: 10400 logL: 346.20 beta0: 0.049 beta1: -0.058 beta2: 0.000 eps:0.000017
+## Iter: 10600 logL: 346.20 beta0: 0.049 beta1: -0.060 beta2: 0.004 eps:0.000014
+## Iter: 10800 logL: 346.20 beta0: 0.051 beta1: -0.065 beta2: 0.008 eps:0.000007
+## Iter: 11000 logL: 346.21 beta0: 0.051 beta1: -0.064 beta2: 0.011 eps:0.000015
+## Iter: 11200 logL: 346.21 beta0: 0.051 beta1: -0.063 beta2: 0.012 eps:0.000011
+## Iter: 11400 logL: 346.20 beta0: 0.048 beta1: -0.060 beta2: 0.013 eps:0.000002
+## Iter: 11600 logL: 346.20 beta0: 0.050 beta1: -0.057 beta2: 0.012 eps:0.000002
+## Iter: 11800 logL: 346.20 beta0: 0.051 beta1: -0.058 beta2: 0.011 eps:0.000014
+## Iter: 12000 logL: 346.20 beta0: 0.049 beta1: -0.060 beta2: 0.011 eps:0.000005</code></pre>
+<p>As we can see, we arrive at similar results, albeit in a slower and more circuitous manner given the “stochastic” nature of our sampling process.</p>
+</div>
+<div id="quasi-newton-bfgs" class="section level1" number="6">
+<h1 number="6"><span class="header-section-number">6</span> Quasi Newton: BFGS</h1>
+<p>To show how we can maximize our log-likelihood and arrive at similar results by using R’s optim package, we make some slight changes to the code below:</p>
+<ol style="list-style-type: decimal">
+<li>We remove the negative sign from likelihood function and its gradient.</li>
+<li>We specify <code>fnscale=-1</code> inside <code>optim</code> to tell the algorithm to maximize rather than minimize.</li>
+</ol>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>LL &lt;-<span class="st"> </span><span class="cf">function</span>(b,X,y){  <span class="co"># b = betas</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>    p&lt;-<span class="kw">as.vector</span>(<span class="dv">1</span><span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(<span class="op">-</span>X <span class="op">%*%</span><span class="st"> </span>b)))  <span class="co"># &quot;standard logistic function&quot;; 1/1+exp(-X)</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a>    <span class="kw">sum</span>(y<span class="op">*</span><span class="kw">log</span>(p) <span class="op">+</span><span class="st"> </span>(<span class="dv">1</span><span class="op">-</span>y)<span class="op">*</span><span class="kw">log</span>(<span class="dv">1</span><span class="op">-</span>p))   <span class="co"># log-likelihood</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a>}</span>
+<span id="cb12-5"><a href="#cb12-5"></a></span>
+<span id="cb12-6"><a href="#cb12-6"></a>gradient &lt;-<span class="st"> </span><span class="cf">function</span>(b,X,y){</span>
+<span id="cb12-7"><a href="#cb12-7"></a>  p &lt;-<span class="st"> </span><span class="kw">as.vector</span>(<span class="dv">1</span><span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(<span class="op">-</span>X <span class="op">%*%</span><span class="st"> </span>b)))</span>
+<span id="cb12-8"><a href="#cb12-8"></a>   <span class="kw">apply</span>(((y <span class="op">-</span><span class="st"> </span>p)<span class="op">*</span>X),<span class="dv">2</span>,sum) <span class="co"># gradient of the log-likelihood function above</span></span>
+<span id="cb12-9"><a href="#cb12-9"></a>}</span></code></pre></div>
+<p>Next, we incorporate these functions into <code>optim</code> and output its results.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>results &lt;-<span class="st"> </span><span class="kw">optim</span>(<span class="kw">rep</span>(<span class="dv">0</span>, <span class="kw">ncol</span>(X)), <span class="dt">fn=</span>LL, <span class="dt">gr=</span>gradient,</span>
+<span id="cb13-2"><a href="#cb13-2"></a>                   <span class="dt">hessian=</span>T, <span class="dt">method=</span><span class="st">&#39;BFGS&#39;</span>, <span class="dt">X=</span>X, <span class="dt">y=</span>y,</span>
+<span id="cb13-3"><a href="#cb13-3"></a>                 <span class="dt">control=</span><span class="kw">list</span>(<span class="dt">trace=</span><span class="dv">1</span>,</span>
+<span id="cb13-4"><a href="#cb13-4"></a>                              <span class="dt">REPORT=</span><span class="dv">1</span>,</span>
+<span id="cb13-5"><a href="#cb13-5"></a>                              <span class="dt">fnscale=</span><span class="op">-</span><span class="dv">1</span>))</span></code></pre></div>
+<pre><code>## initial  value 346.573590 
+## iter   2 value 346.197700
+## iter   3 value 346.196537
+## iter   3 value 346.196534
+## iter   4 value 346.196372
+## iter   4 value 346.196370
+## iter   4 value 346.196370
+## final  value 346.196370 
+## converged</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="kw">list</span>(<span class="dt">coefficients=</span>results<span class="op">$</span>par,<span class="dt">var=</span><span class="kw">solve</span>(results<span class="op">$</span>hessian),</span>
+<span id="cb15-2"><a href="#cb15-2"></a>       <span class="dt">deviance=</span><span class="dv">2</span><span class="op">*</span>results<span class="op">$</span>value,</span>
+<span id="cb15-3"><a href="#cb15-3"></a>       <span class="dt">converged=</span>results<span class="op">$</span>convergence<span class="op">==</span><span class="dv">0</span>)</span></code></pre></div>
+<pre><code>## $coefficients
+## [1]  0.056619506 -0.054500981  0.006064469
+## 
+## $var
+##               [,1]          [,2]          [,3]
+## [1,] -0.0080653906  0.0001521657  0.0006179084
+## [2,]  0.0001521657 -0.0082576568  0.0001890688
+## [3,]  0.0006179084  0.0001890688 -0.0076526842
+## 
+## $deviance
+## [1] -692.3927
+## 
+## $converged
+## [1] TRUE</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="kw">round</span>(results<span class="op">$</span>par, <span class="dv">3</span>)</span></code></pre></div>
+<pre><code>## [1]  0.057 -0.055  0.006</code></pre>
+<p>As we can see, we find can find identical results either through maximization or minimization. Further, we can see that BFGS outperforms gradient descent.</p>
+</div>
+<div id="sources" class="section level1" number="7">
+<h1 number="7"><span class="header-section-number">7</span> Sources</h1>
+<ul>
+<li><p>Giudici, Paolo, Geof H. Givens, and Bani K. Mallick. Wiley Series in Computational Statistics. Wiley Online Library, 2013.</p></li>
+<li><p><a href="https://biodatascience.github.io/statcomp/optim/optim.html" class="uri">https://biodatascience.github.io/statcomp/optim/optim.html</a></p></li>
+</ul>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

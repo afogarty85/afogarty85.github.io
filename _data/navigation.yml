@@ -1,0 +1,16 @@
+# main links links
+main:
+  - title: "Projects"
+    url: /projects/
+
+  - title: "Short Courses"
+    url: /courses/
+
+  - title: "Applied Statistics"
+    url: /applied/
+
+  - title: "Applied ML"
+    url: /ML/
+
+  - title: "CV"
+    url: /files/CV.pdf
