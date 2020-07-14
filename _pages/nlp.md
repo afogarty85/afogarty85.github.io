@@ -8,6 +8,6 @@ author_profile: true
 {% include base_path %}
 
 
-{% for post in site.applied %}
+{% for post in site.nlp %}
   {% include archive-single.html %}
 {% endfor %}
