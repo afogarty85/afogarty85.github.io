@@ -348,7 +348,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb2-27" title="27">random.seed(SEED)</a>
 <a class="sourceLine" id="cb2-28" title="28">np.random.seed(SEED)</a>
 <a class="sourceLine" id="cb2-29" title="29">torch.manual_seed(SEED)</a></code></pre></div>
-<pre><code>## &lt;torch._C.Generator object at 0x000000001F76E050&gt;</code></pre>
+<pre><code>## &lt;torch._C.Generator object at 0x000000001F6CD050&gt;</code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb4-1" title="1">torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></a>
 <a class="sourceLine" id="cb4-2" title="2"></a>
 <a class="sourceLine" id="cb4-3" title="3"><span class="co"># tell pytorch to use cuda</span></a>
@@ -704,10 +704,12 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb31-13" title="13">                                sampler<span class="op">=</span>train_sampler)</a>
 <a class="sourceLine" id="cb31-14" title="14"></a>
 <a class="sourceLine" id="cb31-15" title="15">valid_dataloader <span class="op">=</span> data_loading(batch_size<span class="op">=</span><span class="dv">64</span>,</a>
-<a class="sourceLine" id="cb31-16" title="16">                                data_set<span class="op">=</span>val_dataset)</a>
-<a class="sourceLine" id="cb31-17" title="17"></a>
-<a class="sourceLine" id="cb31-18" title="18">test_dataloader <span class="op">=</span> data_loading(batch_size<span class="op">=</span><span class="dv">64</span>,</a>
-<a class="sourceLine" id="cb31-19" title="19">                               data_set<span class="op">=</span>test_dataset)</a></code></pre></div>
+<a class="sourceLine" id="cb31-16" title="16">                                data_set<span class="op">=</span>val_dataset,</a>
+<a class="sourceLine" id="cb31-17" title="17">                                shuffle<span class="op">=</span><span class="va">True</span>)</a>
+<a class="sourceLine" id="cb31-18" title="18"></a>
+<a class="sourceLine" id="cb31-19" title="19">test_dataloader <span class="op">=</span> data_loading(batch_size<span class="op">=</span><span class="dv">64</span>,</a>
+<a class="sourceLine" id="cb31-20" title="20">                               data_set<span class="op">=</span>test_dataset,</a>
+<a class="sourceLine" id="cb31-21" title="21">                               shuffle<span class="op">=</span><span class="va">True</span>)</a></code></pre></div>
 <p>We can check to see how our sampler is working by running the loop below. As we can see, the data loader is outputting relatively balanced data into each batch.</p>
 <div class="sourceCode" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb32-1" title="1"><span class="co"># lets check class balance for each batch to see how the sampler is working</span></a>
 <a class="sourceLine" id="cb32-2" title="2"><span class="cf">for</span> i, (x, y) <span class="kw">in</span> <span class="bu">enumerate</span>(valid_dataloader):</a>
@@ -837,7 +839,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb34-90" title="90">        <span class="co"># generate logits (batch, target_size)</span></a>
 <a class="sourceLine" id="cb34-91" title="91">        logit <span class="op">=</span> <span class="va">self</span>.fc1(x)</a>
 <a class="sourceLine" id="cb34-92" title="92">        <span class="cf">return</span> logit</a></code></pre></div>
-<p>Below we instantiate some helper functions for time keeping and reviewing the amount of trainable parameters.</p>
+<p>Below we instantiate a helper function for time keeping.</p>
 <div class="sourceCode" id="cb35"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb35-1" title="1"><span class="co"># time function</span></a>
 <a class="sourceLine" id="cb35-2" title="2"><span class="kw">def</span> format_time(elapsed):</a>
 <a class="sourceLine" id="cb35-3" title="3">    <span class="co">&#39;&#39;&#39;</span></a>
@@ -846,14 +848,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb35-6" title="6">    <span class="co"># round to the nearest second.</span></a>
 <a class="sourceLine" id="cb35-7" title="7">    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</a>
 <a class="sourceLine" id="cb35-8" title="8">    <span class="co"># format as hh:mm:ss</span></a>
-<a class="sourceLine" id="cb35-9" title="9">    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</a>
-<a class="sourceLine" id="cb35-10" title="10">    </a>
-<a class="sourceLine" id="cb35-11" title="11"><span class="kw">def</span> review_model_params(model):</a>
-<a class="sourceLine" id="cb35-12" title="12">    pytorch_total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters())</a>
-<a class="sourceLine" id="cb35-13" title="13">    <span class="bu">print</span>(<span class="st">&#39;Total params:&#39;</span>, pytorch_total_params)</a>
-<a class="sourceLine" id="cb35-14" title="14">    pytorch_total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters() <span class="cf">if</span> p.requires_grad)</a>
-<a class="sourceLine" id="cb35-15" title="15">    <span class="bu">print</span>(<span class="st">&#39;Total trainable params&#39;</span>, pytorch_total_params)</a>
-<a class="sourceLine" id="cb35-16" title="16">    <span class="cf">return</span> <span class="va">None</span></a></code></pre></div>
+<a class="sourceLine" id="cb35-9" title="9">    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</a></code></pre></div>
 <p>Now, we prepare functions to train, validate, and test our data.</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb36-1" title="1"><span class="kw">def</span> train(model, dataloader, optimizer, criterion):</a>
 <a class="sourceLine" id="cb36-2" title="2"></a>
@@ -1206,7 +1201,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## summary results
 ## epoch | trn loss | trn f1 | trn time 
-##     1 | 0.34258 | 0.84309 | 0:00:33
+##     1 | 0.34258 | 0.84309 | 0:00:35
 ## [{&#39;Train Loss&#39;: 0.34257625544071196, &#39;Train F1&#39;: 0.8430875575961214}]
 ## 
 ## Running Validation...
@@ -1224,7 +1219,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## summary results
 ## epoch | trn loss | trn f1 | trn time 
-##     2 | 0.26690 | 0.88535 | 0:00:32
+##     2 | 0.26690 | 0.88535 | 0:00:34
 ## [{&#39;Train Loss&#39;: 0.34257625544071196, &#39;Train F1&#39;: 0.8430875575961214}, {&#39;Train Loss&#39;: 0.26690465259552004, &#39;Train F1&#39;: 0.8853466192255715}]
 ## 
 ## Running Validation...
@@ -1242,7 +1237,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## summary results
 ## epoch | trn loss | trn f1 | trn time 
-##     3 | 0.23255 | 0.90257 | 0:00:34
+##     3 | 0.23255 | 0.90257 | 0:00:33
 ## [{&#39;Train Loss&#39;: 0.34257625544071196, &#39;Train F1&#39;: 0.8430875575961214}, {&#39;Train Loss&#39;: 0.26690465259552004, &#39;Train F1&#39;: 0.8853466192255715}, {&#39;Train Loss&#39;: 0.23254692482948303, &#39;Train F1&#39;: 0.9025737543822568}]
 ## 
 ## Running Validation...
@@ -1382,7 +1377,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb57-19" title="19"></a>
 <a class="sourceLine" id="cb57-20" title="20">    valid_dataloader <span class="op">=</span> data_loading(batch_size<span class="op">=</span>batch_size,</a>
 <a class="sourceLine" id="cb57-21" title="21">                                    data_set<span class="op">=</span>val_dataset,</a>
-<a class="sourceLine" id="cb57-22" title="22">                                    sampler<span class="op">=</span>val_sampler)</a>
+<a class="sourceLine" id="cb57-22" title="22">                                    shuffle<span class="op">=</span><span class="va">True</span>)</a>
 <a class="sourceLine" id="cb57-23" title="23"></a>
 <a class="sourceLine" id="cb57-24" title="24">    model <span class="op">=</span> KimCNN(config1).cuda()</a>
 <a class="sourceLine" id="cb57-25" title="25">    optimizer <span class="op">=</span> torch.optim.Adam(model.parameters(), lr<span class="op">=</span>learning_rate)</a>
