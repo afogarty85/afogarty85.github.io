@@ -19,26 +19,27 @@
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css" data-origin="pandoc">
-a.sourceLine { display: inline-block; line-height: 1.25; }
-a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
-a.sourceLine:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-code.sourceCode { white-space: pre-wrap; }
-a.sourceLine { text-indent: -1em; padding-left: 1em; }
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
-pre.numberSource a.sourceLine
-  { position: relative; left: -4em; }
-pre.numberSource a.sourceLine::before
-  { content: attr(title);
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
     position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; pointer-events: all; display: inline-block;
+    border: none; display: inline-block;
     -webkit-touch-callout: none; -webkit-user-select: none;
     -khtml-user-select: none; -moz-user-select: none;
     -ms-user-select: none; user-select: none;
@@ -47,9 +48,9 @@ pre.numberSource a.sourceLine::before
   }
 pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-  {  }
+  {   }
 @media screen {
-a.sourceLine::before { text-decoration: underline; }
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
@@ -308,7 +309,8 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <div id="TOC">
 <ul>
 <li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
-<li><a href="#preparing-the-data"><span class="toc-section-number">2</span> Preparing the Data</a><ul>
+<li><a href="#preparing-the-data"><span class="toc-section-number">2</span> Preparing the Data</a>
+<ul>
 <li><a href="#tokenizing"><span class="toc-section-number">2.1</span> Tokenizing</a></li>
 <li><a href="#instantiating-contiguous-data"><span class="toc-section-number">2.2</span> Instantiating Contiguous Data</a></li>
 <li><a href="#instantiating-the-model"><span class="toc-section-number">2.3</span> Instantiating the Model</a></li>
@@ -322,509 +324,335 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </ul>
 </div>
 
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="co"># load python</span></a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="kw">library</span>(reticulate)</a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="kw">use_condaenv</span>(<span class="st">&quot;my_ml&quot;</span>)</a></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="co"># load packages</span></a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="im">import</span> torch</a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="im">import</span> torch.nn <span class="im">as</span> nn</a>
-<a class="sourceLine" id="cb2-4" title="4"><span class="im">import</span> torch.optim <span class="im">as</span> optim</a>
-<a class="sourceLine" id="cb2-5" title="5"><span class="im">import</span> torch.utils.data <span class="im">as</span> datautils</a>
-<a class="sourceLine" id="cb2-6" title="6"><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader, RandomSampler, SequentialSampler, TensorDataset, random_split</a>
-<a class="sourceLine" id="cb2-7" title="7"><span class="im">from</span> transformers <span class="im">import</span> AutoConfig, AutoModelForSequenceClassification, AutoTokenizer</a>
-<a class="sourceLine" id="cb2-8" title="8"><span class="im">from</span> transformers <span class="im">import</span> GPT2Tokenizer, GPT2LMHeadModel, TextDataset, LineByLineTextDataset</a>
-<a class="sourceLine" id="cb2-9" title="9"><span class="im">from</span> transformers <span class="im">import</span> get_linear_schedule_with_warmup, AdamW</a>
-<a class="sourceLine" id="cb2-10" title="10"><span class="im">import</span> numpy <span class="im">as</span> np</a>
-<a class="sourceLine" id="cb2-11" title="11"><span class="im">import</span> pandas <span class="im">as</span> pd</a>
-<a class="sourceLine" id="cb2-12" title="12"><span class="im">from</span> tqdm <span class="im">import</span> tqdm</a>
-<a class="sourceLine" id="cb2-13" title="13"><span class="im">from</span> sklearn.metrics <span class="im">import</span> roc_auc_score</a>
-<a class="sourceLine" id="cb2-14" title="14"><span class="im">import</span> time, os, datetime, random, re</a>
-<a class="sourceLine" id="cb2-15" title="15"><span class="im">from</span> torch.cuda.amp <span class="im">import</span> autocast, GradScaler</a>
-<a class="sourceLine" id="cb2-16" title="16"><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</a>
-<a class="sourceLine" id="cb2-17" title="17"></a>
-<a class="sourceLine" id="cb2-18" title="18">SEED <span class="op">=</span> <span class="dv">15</span></a>
-<a class="sourceLine" id="cb2-19" title="19">random.seed(SEED)</a>
-<a class="sourceLine" id="cb2-20" title="20">np.random.seed(SEED)</a>
-<a class="sourceLine" id="cb2-21" title="21">torch.manual_seed(SEED)</a></code></pre></div>
-<pre><code>## &lt;torch._C.Generator object at 0x000000002180B070&gt;</code></pre>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb4-1" title="1">torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></a>
-<a class="sourceLine" id="cb4-2" title="2"></a>
-<a class="sourceLine" id="cb4-3" title="3"><span class="co"># tell pytorch to use cuda</span></a>
-<a class="sourceLine" id="cb4-4" title="4">device <span class="op">=</span> torch.device(<span class="st">&quot;cuda&quot;</span>)</a></code></pre></div>
-<div id="introduction" class="section level1">
-<h1><span class="header-section-number">1</span> Introduction</h1>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># load python</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">library</span>(reticulate)</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="kw">use_condaenv</span>(<span class="st">&quot;my_ml&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># load packages</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="im">import</span> torch</span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="im">import</span> torch.utils.data <span class="im">as</span> datautils</span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader, RandomSampler, SequentialSampler, TensorDataset, random_split</span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="im">from</span> transformers <span class="im">import</span> AutoConfig, AutoModelForSequenceClassification, AutoTokenizer</span>
+<span id="cb2-8"><a href="#cb2-8"></a><span class="im">from</span> transformers <span class="im">import</span> GPT2Tokenizer, GPT2LMHeadModel, TextDataset, LineByLineTextDataset</span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="im">from</span> transformers <span class="im">import</span> get_linear_schedule_with_warmup, AdamW</span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-11"><a href="#cb2-11"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
+<span id="cb2-13"><a href="#cb2-13"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> roc_auc_score</span>
+<span id="cb2-14"><a href="#cb2-14"></a><span class="im">import</span> time, os, datetime, random, re</span>
+<span id="cb2-15"><a href="#cb2-15"></a><span class="im">from</span> torch.cuda.amp <span class="im">import</span> autocast, GradScaler</span>
+<span id="cb2-16"><a href="#cb2-16"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb2-17"><a href="#cb2-17"></a></span>
+<span id="cb2-18"><a href="#cb2-18"></a>SEED <span class="op">=</span> <span class="dv">15</span></span>
+<span id="cb2-19"><a href="#cb2-19"></a>random.seed(SEED)</span>
+<span id="cb2-20"><a href="#cb2-20"></a>np.random.seed(SEED)</span>
+<span id="cb2-21"><a href="#cb2-21"></a>torch.manual_seed(SEED)</span></code></pre></div>
+<pre><code>## &lt;torch._C.Generator object at 0x000000001FA5B090&gt;</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a></span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># tell pytorch to use cuda</span></span>
+<span id="cb4-4"><a href="#cb4-4"></a>device <span class="op">=</span> torch.device(<span class="st">&quot;cuda&quot;</span>)</span></code></pre></div>
+<div id="introduction" class="section level1" number="1">
+<h1 number="1"><span class="header-section-number">1</span> Introduction</h1>
 <p>Language models are trained to predict the probability the next “token” considering the preceding tokens that came before it. A token can be a word, a letter, or a subcomponent of a word. When generating text with language models, we often provide a starting sequence, like “The Taliban launched an attack”, and then the language model then outputs probabilities for what token comes next, drawing on all possible outcomes from the vocabulary.</p>
 <p>In this guide, we use the a decoder-only language model transformer to predict text from our novel insurgent propaganda corpus. Generative Pre-Training (GPT-2) that takes input of up to 1024 byte pair tokens, is comprised of 12 decoder layers and 12 attention heads, and outputs a 768 dimensional vector (for the <em>small</em> version). GPT-2 is trained with Book Corpus via long contiguous runs of text.</p>
 </div>
-<div id="preparing-the-data" class="section level1">
-<h1><span class="header-section-number">2</span> Preparing the Data</h1>
+<div id="preparing-the-data" class="section level1" number="2">
+<h1 number="2"><span class="header-section-number">2</span> Preparing the Data</h1>
 <p>Unlike the other guides, we need to process our data a little bit differently so as to create long contiguous inputs. The code below does minor clean up on the data set and creates a train and validation set that are then saved as text files.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb5-1" title="1"><span class="co"># prepare and load data</span></a>
-<a class="sourceLine" id="cb5-2" title="2"><span class="kw">def</span> prepare_df(pkl_location):</a>
-<a class="sourceLine" id="cb5-3" title="3">    <span class="co"># read pkl as pandas</span></a>
-<a class="sourceLine" id="cb5-4" title="4">    df <span class="op">=</span> pd.read_pickle(pkl_location)</a>
-<a class="sourceLine" id="cb5-5" title="5">    <span class="co"># remove excess white spaces</span></a>
-<a class="sourceLine" id="cb5-6" title="6">    df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="st">&quot; &quot;</span>.join(x.split()))</a>
-<a class="sourceLine" id="cb5-7" title="7">    <span class="co"># remove excess spaces near punctuation</span></a>
-<a class="sourceLine" id="cb5-8" title="8">    df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: re.sub(<span class="vs">r&#39;\s([?.!&quot;](?:\s|$))&#39;</span>, <span class="vs">r&#39;\1&#39;</span>, x))</a>
-<a class="sourceLine" id="cb5-9" title="9">    <span class="co"># split and shuffle data</span></a>
-<a class="sourceLine" id="cb5-10" title="10">    train, valid <span class="op">=</span> train_test_split(df[<span class="st">&#39;body&#39;</span>], test_size<span class="op">=</span><span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb5-11" title="11">    <span class="cf">return</span> train.reset_index(drop<span class="op">=</span><span class="va">True</span>), valid.reset_index(drop<span class="op">=</span><span class="va">True</span>)</a>
-<a class="sourceLine" id="cb5-12" title="12"></a>
-<a class="sourceLine" id="cb5-13" title="13"></a>
-<a class="sourceLine" id="cb5-14" title="14"><span class="co"># instantiate shuffled train and validation</span></a>
-<a class="sourceLine" id="cb5-15" title="15">train, valid <span class="op">=</span> prepare_df(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">df.pkl&#39;</span>)</a>
-<a class="sourceLine" id="cb5-16" title="16"></a>
-<a class="sourceLine" id="cb5-17" title="17"><span class="co"># save to text for transformers TextDataset</span></a>
-<a class="sourceLine" id="cb5-18" title="18">np.savetxt(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">train.txt&#39;</span>, train, fmt<span class="op">=</span><span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>)</a>
-<a class="sourceLine" id="cb5-19" title="19">np.savetxt(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">valid.txt&#39;</span>, valid, fmt<span class="op">=</span><span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>)</a></code></pre></div>
-<div id="tokenizing" class="section level2">
-<h2><span class="header-section-number">2.1</span> Tokenizing</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># prepare and load data</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="kw">def</span> prepare_df(pkl_location):</span>
+<span id="cb5-3"><a href="#cb5-3"></a>    <span class="co"># read pkl as pandas</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a>    df <span class="op">=</span> pd.read_pickle(pkl_location)</span>
+<span id="cb5-5"><a href="#cb5-5"></a>    <span class="co"># remove excess white spaces</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>    df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="st">&quot; &quot;</span>.join(x.split()))</span>
+<span id="cb5-7"><a href="#cb5-7"></a>    <span class="co"># remove excess spaces near punctuation</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>    df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: re.sub(<span class="vs">r&#39;\s([?.!&quot;](?:\s|$))&#39;</span>, <span class="vs">r&#39;\1&#39;</span>, x))</span>
+<span id="cb5-9"><a href="#cb5-9"></a>    <span class="co"># split and shuffle data</span></span>
+<span id="cb5-10"><a href="#cb5-10"></a>    train, valid <span class="op">=</span> train_test_split(df[<span class="st">&#39;body&#39;</span>], test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb5-11"><a href="#cb5-11"></a>    <span class="cf">return</span> train.reset_index(drop<span class="op">=</span><span class="va">True</span>), valid.reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-12"><a href="#cb5-12"></a></span>
+<span id="cb5-13"><a href="#cb5-13"></a></span>
+<span id="cb5-14"><a href="#cb5-14"></a><span class="co"># instantiate shuffled train and validation</span></span>
+<span id="cb5-15"><a href="#cb5-15"></a>train, valid <span class="op">=</span> prepare_df(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">df.pkl&#39;</span>)</span>
+<span id="cb5-16"><a href="#cb5-16"></a></span>
+<span id="cb5-17"><a href="#cb5-17"></a><span class="co"># save to text for transformers TextDataset</span></span>
+<span id="cb5-18"><a href="#cb5-18"></a>np.savetxt(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">train.txt&#39;</span>, train, fmt<span class="op">=</span><span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>)</span>
+<span id="cb5-19"><a href="#cb5-19"></a>np.savetxt(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">valid.txt&#39;</span>, valid, fmt<span class="op">=</span><span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div id="tokenizing" class="section level2" number="2.1">
+<h2 number="2.1"><span class="header-section-number">2.1</span> Tokenizing</h2>
 <p>Next, we instantiate the GPT-2 tokenizer and add some special tokens to account for the beginning and end of a sentence, as well as padding. However, I am not certain that these tokens are all that necessary.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb6-1" title="1"><span class="co"># instantiate GPT2 tokenizer, byte-level encoding</span></a>
-<a class="sourceLine" id="cb6-2" title="2">tokenizer <span class="op">=</span> GPT2Tokenizer.from_pretrained(<span class="st">&#39;distilgpt2&#39;</span>)</a>
-<a class="sourceLine" id="cb6-3" title="3"></a>
-<a class="sourceLine" id="cb6-4" title="4"><span class="co"># add special tokens that otherwise all share the same id</span></a></code></pre></div>
-<pre><code>## 
-Downloading:   0%|          | 0.00/1.04M [00:00&lt;?, ?B/s]
-Downloading: 100%|##########| 1.04M/1.04M [00:00&lt;00:00, 10.4MB/s]
-Downloading: 100%|##########| 1.04M/1.04M [00:00&lt;00:00, 10.4MB/s]
-## 
-Downloading:   0%|          | 0.00/456k [00:00&lt;?, ?B/s]
-Downloading: 100%|##########| 456k/456k [00:00&lt;00:00, 6.99MB/s]</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb8-1" title="1">tokenizer.add_special_tokens({<span class="st">&#39;bos_token&#39;</span>: <span class="st">&#39;&lt;bos&gt;&#39;</span>,</a>
-<a class="sourceLine" id="cb8-2" title="2">                              <span class="st">&#39;eos_token&#39;</span>: <span class="st">&#39;&lt;eos&gt;&#39;</span>,</a>
-<a class="sourceLine" id="cb8-3" title="3">                              <span class="st">&#39;pad_token&#39;</span>: <span class="st">&#39;&lt;pad&gt;&#39;</span>})</a>
-<a class="sourceLine" id="cb8-4" title="4"></a>
-<a class="sourceLine" id="cb8-5" title="5"><span class="co"># check token ids</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># instantiate GPT2 tokenizer, byte-level encoding</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>tokenizer <span class="op">=</span> GPT2Tokenizer.from_pretrained(<span class="st">&#39;distilgpt2&#39;</span>)</span>
+<span id="cb6-3"><a href="#cb6-3"></a></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="co"># add special tokens that otherwise all share the same id</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a>tokenizer.add_special_tokens({<span class="st">&#39;bos_token&#39;</span>: <span class="st">&#39;&lt;bos&gt;&#39;</span>,</span>
+<span id="cb6-6"><a href="#cb6-6"></a>                              <span class="st">&#39;eos_token&#39;</span>: <span class="st">&#39;&lt;eos&gt;&#39;</span>,</span>
+<span id="cb6-7"><a href="#cb6-7"></a>                              <span class="st">&#39;pad_token&#39;</span>: <span class="st">&#39;&lt;pad&gt;&#39;</span>})</span>
+<span id="cb6-8"><a href="#cb6-8"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="co"># check token ids</span></span></code></pre></div>
 <pre><code>## 3</code></pre>
-<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb10-1" title="1">tokenizer.eos_token_id</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>tokenizer.eos_token_id</span></code></pre></div>
 <pre><code>## 50258</code></pre>
-<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb12-1" title="1">tokenizer.bos_token_id</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>tokenizer.bos_token_id</span></code></pre></div>
 <pre><code>## 50257</code></pre>
-<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb14-1" title="1">tokenizer.unk_token_id</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a>tokenizer.unk_token_id</span></code></pre></div>
 <pre><code>## 50256</code></pre>
-<div class="sourceCode" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb16-1" title="1">tokenizer.pad_token_id</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a>tokenizer.pad_token_id</span></code></pre></div>
 <pre><code>## 50259</code></pre>
 </div>
-<div id="instantiating-contiguous-data" class="section level2">
-<h2><span class="header-section-number">2.2</span> Instantiating Contiguous Data</h2>
+<div id="instantiating-contiguous-data" class="section level2" number="2.2">
+<h2 number="2.2"><span class="header-section-number">2.2</span> Instantiating Contiguous Data</h2>
 <p>Next, we use <code>TextDataset</code> from the <code>transformers</code> package to build our contiguous data for language modeling.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb18-1" title="1"><span class="co"># Transfomer Data Set -- we need everything the same length</span></a>
-<a class="sourceLine" id="cb18-2" title="2">train_set <span class="op">=</span> TextDataset(tokenizer<span class="op">=</span>tokenizer,</a>
-<a class="sourceLine" id="cb18-3" title="3">                        file_path<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">train.txt&#39;</span>,</a>
-<a class="sourceLine" id="cb18-4" title="4">                        block_size<span class="op">=</span><span class="dv">1025</span>)</a>
-<a class="sourceLine" id="cb18-5" title="5"></a>
-<a class="sourceLine" id="cb18-6" title="6">valid_set <span class="op">=</span> TextDataset(tokenizer<span class="op">=</span>tokenizer,</a>
-<a class="sourceLine" id="cb18-7" title="7">                        file_path<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">valid.txt&#39;</span>,</a>
-<a class="sourceLine" id="cb18-8" title="8">                        block_size<span class="op">=</span><span class="dv">1025</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># Transfomer Data Set -- we need everything the same length</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a>train_set <span class="op">=</span> TextDataset(tokenizer<span class="op">=</span>tokenizer,</span>
+<span id="cb16-3"><a href="#cb16-3"></a>                        file_path<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">train.txt&#39;</span>,</span>
+<span id="cb16-4"><a href="#cb16-4"></a>                        block_size<span class="op">=</span><span class="dv">1025</span>)</span>
+<span id="cb16-5"><a href="#cb16-5"></a></span>
+<span id="cb16-6"><a href="#cb16-6"></a>valid_set <span class="op">=</span> TextDataset(tokenizer<span class="op">=</span>tokenizer,</span>
+<span id="cb16-7"><a href="#cb16-7"></a>                        file_path<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">valid.txt&#39;</span>,</span>
+<span id="cb16-8"><a href="#cb16-8"></a>                        block_size<span class="op">=</span><span class="dv">1025</span>)</span></code></pre></div>
 </div>
-<div id="instantiating-the-model" class="section level2">
-<h2><span class="header-section-number">2.3</span> Instantiating the Model</h2>
+<div id="instantiating-the-model" class="section level2" number="2.3">
+<h2 number="2.3"><span class="header-section-number">2.3</span> Instantiating the Model</h2>
 <p>Like most transformer models, we instantiate it and attach it to the GPU like so. Since GPT-2 is such a large model, we use the distilled version.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb19-1" title="1"><span class="co"># instantiate model GPT2 transformer with a language modeling head on top</span></a>
-<a class="sourceLine" id="cb19-2" title="2">model <span class="op">=</span> GPT2LMHeadModel.from_pretrained(<span class="st">&#39;distilgpt2&#39;</span>).cuda()  <span class="co"># to GPU</span></a></code></pre></div>
-<pre><code>## 
-Downloading:   0%|          | 0.00/762 [00:00&lt;?, ?B/s]
-Downloading: 100%|##########| 762/762 [00:00&lt;00:00, 762kB/s]
-## 
-Downloading:   0%|          | 0.00/353M [00:00&lt;?, ?B/s]
-Downloading:   0%|          | 985k/353M [00:00&lt;00:36, 9.76MB/s]
-Downloading:   1%|          | 3.35M/353M [00:00&lt;00:29, 11.8MB/s]
-Downloading:   2%|1         | 5.83M/353M [00:00&lt;00:24, 14.0MB/s]
-Downloading:   2%|2         | 7.97M/353M [00:00&lt;00:22, 15.6MB/s]
-Downloading:   3%|2         | 10.2M/353M [00:00&lt;00:20, 17.1MB/s]
-Downloading:   3%|3         | 12.1M/353M [00:00&lt;00:19, 17.5MB/s]
-Downloading:   4%|3         | 13.9M/353M [00:00&lt;00:19, 17.7MB/s]
-Downloading:   5%|4         | 16.3M/353M [00:00&lt;00:17, 19.1MB/s]
-Downloading:   5%|5         | 18.3M/353M [00:00&lt;00:17, 19.5MB/s]
-Downloading:   6%|5         | 20.3M/353M [00:01&lt;00:17, 19.4MB/s]
-Downloading:   6%|6         | 22.5M/353M [00:01&lt;00:16, 20.0MB/s]
-Downloading:   7%|6         | 24.7M/353M [00:01&lt;00:16, 20.4MB/s]
-Downloading:   8%|7         | 26.7M/353M [00:01&lt;00:15, 20.4MB/s]
-Downloading:   8%|8         | 28.8M/353M [00:01&lt;00:16, 19.5MB/s]
-Downloading:   9%|8         | 31.0M/353M [00:01&lt;00:16, 19.8MB/s]
-Downloading:   9%|9         | 33.2M/353M [00:01&lt;00:15, 20.4MB/s]
-Downloading:  10%|#         | 35.3M/353M [00:01&lt;00:15, 20.6MB/s]
-Downloading:  11%|#         | 37.5M/353M [00:01&lt;00:15, 20.8MB/s]
-Downloading:  11%|#1        | 39.9M/353M [00:01&lt;00:14, 21.6MB/s]
-Downloading:  12%|#1        | 42.3M/353M [00:02&lt;00:13, 22.2MB/s]
-Downloading:  13%|#2        | 44.5M/353M [00:02&lt;00:14, 21.8MB/s]
-Downloading:  13%|#3        | 46.7M/353M [00:02&lt;00:14, 21.7MB/s]
-Downloading:  14%|#3        | 49.0M/353M [00:02&lt;00:13, 22.0MB/s]
-Downloading:  15%|#4        | 51.3M/353M [00:02&lt;00:13, 22.0MB/s]
-Downloading:  15%|#5        | 53.5M/353M [00:02&lt;00:13, 21.6MB/s]
-Downloading:  16%|#5        | 55.9M/353M [00:02&lt;00:13, 22.5MB/s]
-Downloading:  16%|#6        | 58.2M/353M [00:02&lt;00:13, 22.5MB/s]
-Downloading:  17%|#7        | 60.6M/353M [00:02&lt;00:12, 22.7MB/s]
-Downloading:  18%|#7        | 62.8M/353M [00:02&lt;00:13, 21.8MB/s]
-Downloading:  18%|#8        | 65.0M/353M [00:03&lt;00:13, 20.9MB/s]
-Downloading:  19%|#9        | 67.1M/353M [00:03&lt;00:13, 20.7MB/s]
-Downloading:  20%|#9        | 69.2M/353M [00:03&lt;00:14, 20.0MB/s]
-Downloading:  20%|##        | 71.7M/353M [00:03&lt;00:13, 21.1MB/s]
-Downloading:  21%|##        | 73.8M/353M [00:03&lt;00:13, 20.2MB/s]
-Downloading:  21%|##1       | 75.8M/353M [00:03&lt;00:14, 19.7MB/s]
-Downloading:  22%|##2       | 78.2M/353M [00:03&lt;00:13, 20.6MB/s]
-Downloading:  23%|##2       | 80.2M/353M [00:03&lt;00:13, 19.8MB/s]
-Downloading:  23%|##3       | 82.6M/353M [00:03&lt;00:12, 20.8MB/s]
-Downloading:  24%|##4       | 84.7M/353M [00:04&lt;00:13, 20.1MB/s]
-Downloading:  25%|##4       | 87.2M/353M [00:04&lt;00:12, 21.0MB/s]
-Downloading:  25%|##5       | 89.3M/353M [00:04&lt;00:12, 21.0MB/s]
-Downloading:  26%|##5       | 91.7M/353M [00:04&lt;00:12, 21.6MB/s]
-Downloading:  27%|##6       | 93.8M/353M [00:04&lt;00:12, 21.5MB/s]
-Downloading:  27%|##7       | 96.0M/353M [00:04&lt;00:11, 21.5MB/s]
-Downloading:  28%|##7       | 98.2M/353M [00:04&lt;00:11, 21.5MB/s]
-Downloading:  28%|##8       | 100M/353M [00:04&lt;00:12, 21.0MB/s] 
-Downloading:  29%|##9       | 103M/353M [00:04&lt;00:11, 21.9MB/s]
-Downloading:  30%|##9       | 105M/353M [00:04&lt;00:11, 21.6MB/s]
-Downloading:  30%|###       | 107M/353M [00:05&lt;00:11, 21.6MB/s]
-Downloading:  31%|###       | 109M/353M [00:05&lt;00:11, 21.4MB/s]
-Downloading:  32%|###1      | 111M/353M [00:05&lt;00:12, 20.0MB/s]
-Downloading:  32%|###2      | 113M/353M [00:05&lt;00:12, 19.6MB/s]
-Downloading:  33%|###2      | 115M/353M [00:05&lt;00:12, 19.0MB/s]
-Downloading:  33%|###3      | 117M/353M [00:05&lt;00:12, 18.6MB/s]
-Downloading:  34%|###3      | 120M/353M [00:05&lt;00:12, 19.3MB/s]
-Downloading:  34%|###4      | 121M/353M [00:05&lt;00:12, 19.2MB/s]
-Downloading:  35%|###5      | 124M/353M [00:05&lt;00:11, 20.2MB/s]
-Downloading:  36%|###5      | 126M/353M [00:06&lt;00:11, 20.5MB/s]
-Downloading:  36%|###6      | 128M/353M [00:06&lt;00:11, 20.0MB/s]
-Downloading:  37%|###6      | 130M/353M [00:06&lt;00:10, 21.0MB/s]
-Downloading:  38%|###7      | 132M/353M [00:06&lt;00:10, 20.7MB/s]
-Downloading:  38%|###8      | 135M/353M [00:06&lt;00:10, 20.1MB/s]
-Downloading:  39%|###8      | 137M/353M [00:06&lt;00:10, 21.1MB/s]
-Downloading:  39%|###9      | 139M/353M [00:06&lt;00:10, 21.0MB/s]
-Downloading:  40%|####      | 141M/353M [00:06&lt;00:10, 20.3MB/s]
-Downloading:  41%|####      | 143M/353M [00:06&lt;00:10, 20.3MB/s]
-Downloading:  41%|####1     | 145M/353M [00:06&lt;00:10, 20.4MB/s]
-Downloading:  42%|####1     | 148M/353M [00:07&lt;00:09, 21.0MB/s]
-Downloading:  42%|####2     | 150M/353M [00:07&lt;00:10, 20.2MB/s]
-Downloading:  43%|####3     | 152M/353M [00:07&lt;00:10, 19.5MB/s]
-Downloading:  44%|####3     | 154M/353M [00:07&lt;00:09, 20.0MB/s]
-Downloading:  44%|####4     | 156M/353M [00:07&lt;00:09, 20.6MB/s]
-Downloading:  45%|####4     | 158M/353M [00:07&lt;00:09, 21.2MB/s]
-Downloading:  46%|####5     | 161M/353M [00:07&lt;00:09, 21.3MB/s]
-Downloading:  46%|####6     | 163M/353M [00:07&lt;00:09, 20.6MB/s]
-Downloading:  47%|####6     | 165M/353M [00:07&lt;00:09, 20.5MB/s]
-Downloading:  47%|####7     | 167M/353M [00:08&lt;00:08, 21.1MB/s]
-Downloading:  48%|####8     | 169M/353M [00:08&lt;00:08, 21.1MB/s]
-Downloading:  49%|####8     | 172M/353M [00:08&lt;00:08, 20.4MB/s]
-Downloading:  49%|####9     | 174M/353M [00:08&lt;00:08, 20.6MB/s]
-Downloading:  50%|####9     | 176M/353M [00:08&lt;00:08, 20.3MB/s]
-Downloading:  50%|#####     | 178M/353M [00:08&lt;00:08, 21.1MB/s]
-Downloading:  51%|#####1    | 180M/353M [00:08&lt;00:08, 20.8MB/s]
-Downloading:  52%|#####1    | 182M/353M [00:08&lt;00:08, 20.8MB/s]
-Downloading:  52%|#####2    | 184M/353M [00:08&lt;00:08, 20.4MB/s]
-Downloading:  53%|#####2    | 186M/353M [00:08&lt;00:08, 20.4MB/s]
-Downloading:  53%|#####3    | 189M/353M [00:09&lt;00:08, 20.4MB/s]
-Downloading:  54%|#####4    | 191M/353M [00:09&lt;00:07, 21.0MB/s]
-Downloading:  55%|#####4    | 193M/353M [00:09&lt;00:07, 21.0MB/s]
-Downloading:  55%|#####5    | 195M/353M [00:09&lt;00:07, 20.6MB/s]
-Downloading:  56%|#####5    | 197M/353M [00:09&lt;00:07, 20.9MB/s]
-Downloading:  56%|#####6    | 199M/353M [00:09&lt;00:07, 21.0MB/s]
-Downloading:  57%|#####7    | 201M/353M [00:09&lt;00:07, 21.1MB/s]
-Downloading:  58%|#####7    | 204M/353M [00:09&lt;00:07, 20.2MB/s]
-Downloading:  58%|#####8    | 206M/353M [00:09&lt;00:07, 20.1MB/s]
-Downloading:  59%|#####8    | 208M/353M [00:10&lt;00:07, 20.4MB/s]
-Downloading:  60%|#####9    | 210M/353M [00:10&lt;00:06, 21.4MB/s]
-Downloading:  60%|######    | 212M/353M [00:10&lt;00:06, 20.8MB/s]
-Downloading:  61%|######    | 214M/353M [00:10&lt;00:06, 20.8MB/s]
-Downloading:  61%|######1   | 217M/353M [00:10&lt;00:06, 21.7MB/s]
-Downloading:  62%|######2   | 219M/353M [00:10&lt;00:06, 21.6MB/s]
-Downloading:  63%|######2   | 221M/353M [00:10&lt;00:06, 21.9MB/s]
-Downloading:  63%|######3   | 223M/353M [00:10&lt;00:06, 20.9MB/s]
-Downloading:  64%|######3   | 226M/353M [00:10&lt;00:06, 21.0MB/s]
-Downloading:  65%|######4   | 228M/353M [00:10&lt;00:05, 21.3MB/s]
-Downloading:  65%|######5   | 230M/353M [00:11&lt;00:05, 20.6MB/s]
-Downloading:  66%|######5   | 232M/353M [00:11&lt;00:05, 21.2MB/s]
-Downloading:  66%|######6   | 235M/353M [00:11&lt;00:05, 21.8MB/s]
-Downloading:  67%|######7   | 237M/353M [00:11&lt;00:05, 20.9MB/s]
-Downloading:  68%|######7   | 239M/353M [00:11&lt;00:05, 21.0MB/s]
-Downloading:  68%|######8   | 241M/353M [00:11&lt;00:05, 21.0MB/s]
-Downloading:  69%|######8   | 243M/353M [00:11&lt;00:05, 20.7MB/s]
-Downloading:  70%|######9   | 245M/353M [00:11&lt;00:05, 20.7MB/s]
-Downloading:  70%|#######   | 247M/353M [00:11&lt;00:04, 21.1MB/s]
-Downloading:  71%|#######   | 250M/353M [00:11&lt;00:04, 21.4MB/s]
-Downloading:  71%|#######1  | 252M/353M [00:12&lt;00:04, 21.9MB/s]
-Downloading:  72%|#######2  | 254M/353M [00:12&lt;00:04, 21.5MB/s]
-Downloading:  73%|#######2  | 257M/353M [00:12&lt;00:04, 22.1MB/s]
-Downloading:  73%|#######3  | 259M/353M [00:12&lt;00:04, 22.0MB/s]
-Downloading:  74%|#######3  | 261M/353M [00:12&lt;00:04, 21.8MB/s]
-Downloading:  75%|#######4  | 263M/353M [00:12&lt;00:04, 21.6MB/s]
-Downloading:  75%|#######5  | 265M/353M [00:12&lt;00:04, 21.5MB/s]
-Downloading:  76%|#######5  | 268M/353M [00:12&lt;00:03, 21.5MB/s]
-Downloading:  77%|#######6  | 270M/353M [00:12&lt;00:03, 22.2MB/s]
-Downloading:  77%|#######7  | 272M/353M [00:13&lt;00:03, 22.1MB/s]
-Downloading:  78%|#######7  | 274M/353M [00:13&lt;00:03, 22.2MB/s]
-Downloading:  78%|#######8  | 277M/353M [00:13&lt;00:03, 21.5MB/s]
-Downloading:  79%|#######9  | 279M/353M [00:13&lt;00:03, 22.0MB/s]
-Downloading:  80%|#######9  | 281M/353M [00:13&lt;00:03, 21.9MB/s]
-Downloading:  80%|########  | 283M/353M [00:13&lt;00:03, 21.2MB/s]
-Downloading:  81%|########  | 286M/353M [00:13&lt;00:03, 21.0MB/s]
-Downloading:  82%|########1 | 288M/353M [00:13&lt;00:03, 20.9MB/s]
-Downloading:  82%|########2 | 290M/353M [00:13&lt;00:03, 20.6MB/s]
-Downloading:  83%|########2 | 292M/353M [00:13&lt;00:03, 20.0MB/s]
-Downloading:  83%|########3 | 294M/353M [00:14&lt;00:02, 20.3MB/s]
-Downloading:  84%|########3 | 296M/353M [00:14&lt;00:02, 20.6MB/s]
-Downloading:  84%|########4 | 298M/353M [00:14&lt;00:02, 20.2MB/s]
-Downloading:  85%|########5 | 300M/353M [00:14&lt;00:02, 20.8MB/s]
-Downloading:  86%|########5 | 303M/353M [00:14&lt;00:02, 20.6MB/s]
-Downloading:  86%|########6 | 305M/353M [00:14&lt;00:02, 20.9MB/s]
-Downloading:  87%|########6 | 307M/353M [00:14&lt;00:02, 20.9MB/s]
-Downloading:  88%|########7 | 309M/353M [00:14&lt;00:02, 21.1MB/s]
-Downloading:  88%|########8 | 311M/353M [00:14&lt;00:01, 21.4MB/s]
-Downloading:  89%|########8 | 313M/353M [00:14&lt;00:01, 21.5MB/s]
-Downloading:  89%|########9 | 316M/353M [00:15&lt;00:01, 21.9MB/s]
-Downloading:  90%|######### | 318M/353M [00:15&lt;00:01, 21.7MB/s]
-Downloading:  91%|######### | 320M/353M [00:15&lt;00:01, 22.2MB/s]
-Downloading:  91%|#########1| 322M/353M [00:15&lt;00:01, 22.0MB/s]
-Downloading:  92%|#########2| 325M/353M [00:15&lt;00:01, 22.4MB/s]
-Downloading:  93%|#########2| 327M/353M [00:15&lt;00:01, 22.3MB/s]
-Downloading:  93%|#########3| 329M/353M [00:15&lt;00:01, 21.2MB/s]
-Downloading:  94%|#########3| 331M/353M [00:15&lt;00:01, 20.6MB/s]
-Downloading:  95%|#########4| 334M/353M [00:15&lt;00:00, 20.3MB/s]
-Downloading:  95%|#########5| 336M/353M [00:16&lt;00:00, 20.0MB/s]
-Downloading:  96%|#########5| 338M/353M [00:16&lt;00:00, 20.5MB/s]
-Downloading:  96%|#########6| 340M/353M [00:16&lt;00:00, 20.7MB/s]
-Downloading:  97%|#########7| 342M/353M [00:16&lt;00:00, 21.2MB/s]
-Downloading:  98%|#########7| 345M/353M [00:16&lt;00:00, 21.5MB/s]
-Downloading:  98%|#########8| 347M/353M [00:16&lt;00:00, 21.4MB/s]
-Downloading:  99%|#########8| 349M/353M [00:16&lt;00:00, 21.7MB/s]
-Downloading: 100%|#########9| 351M/353M [00:16&lt;00:00, 21.5MB/s]
-Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
-## Some weights of GPT2LMHeadModel were not initialized from the model checkpoint at distilgpt2 and are newly initialized: [&#39;transformer.h.0.attn.masked_bias&#39;, &#39;transformer.h.1.attn.masked_bias&#39;, &#39;transformer.h.2.attn.masked_bias&#39;, &#39;transformer.h.3.attn.masked_bias&#39;, &#39;transformer.h.4.attn.masked_bias&#39;, &#39;transformer.h.5.attn.masked_bias&#39;]
+<div class="sourceCode" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a><span class="co"># instantiate model GPT2 transformer with a language modeling head on top</span></span>
+<span id="cb17-2"><a href="#cb17-2"></a>model <span class="op">=</span> GPT2LMHeadModel.from_pretrained(<span class="st">&#39;distilgpt2&#39;</span>).cuda()  <span class="co"># to GPU</span></span></code></pre></div>
+<pre><code>## Some weights of GPT2LMHeadModel were not initialized from the model checkpoint at distilgpt2 and are newly initialized: [&#39;transformer.h.0.attn.masked_bias&#39;, &#39;transformer.h.1.attn.masked_bias&#39;, &#39;transformer.h.2.attn.masked_bias&#39;, &#39;transformer.h.3.attn.masked_bias&#39;, &#39;transformer.h.4.attn.masked_bias&#39;, &#39;transformer.h.5.attn.masked_bias&#39;]
 ## You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.</code></pre>
 <p>Next, data loaders are prepared. Due to the contiguous nature of our data, ensure to use <code>SequentialSampler</code>.</p>
 </div>
-<div id="data-loaders" class="section level2">
-<h2><span class="header-section-number">2.4</span> Data Loaders</h2>
-<div class="sourceCode" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb21-1" title="1"><span class="co"># prepare data loaders</span></a>
-<a class="sourceLine" id="cb21-2" title="2">train_dataloader <span class="op">=</span> datautils.DataLoader(dataset<span class="op">=</span>train_set,</a>
-<a class="sourceLine" id="cb21-3" title="3">                                        sampler<span class="op">=</span>SequentialSampler(train_set),</a>
-<a class="sourceLine" id="cb21-4" title="4">                                        batch_size<span class="op">=</span><span class="dv">3</span>,</a>
-<a class="sourceLine" id="cb21-5" title="5">                                        drop_last<span class="op">=</span><span class="va">True</span>,</a>
-<a class="sourceLine" id="cb21-6" title="6">                                        shuffle<span class="op">=</span><span class="va">False</span>)</a>
-<a class="sourceLine" id="cb21-7" title="7"></a>
-<a class="sourceLine" id="cb21-8" title="8"></a>
-<a class="sourceLine" id="cb21-9" title="9">valid_dataloader <span class="op">=</span> datautils.DataLoader(dataset<span class="op">=</span>valid_set,</a>
-<a class="sourceLine" id="cb21-10" title="10">                                        sampler<span class="op">=</span>SequentialSampler(valid_set),</a>
-<a class="sourceLine" id="cb21-11" title="11">                                        batch_size<span class="op">=</span><span class="dv">3</span>,</a>
-<a class="sourceLine" id="cb21-12" title="12">                                        drop_last<span class="op">=</span><span class="va">True</span>,</a>
-<a class="sourceLine" id="cb21-13" title="13">                                        shuffle<span class="op">=</span><span class="va">False</span>)</a></code></pre></div>
+<div id="data-loaders" class="section level2" number="2.4">
+<h2 number="2.4"><span class="header-section-number">2.4</span> Data Loaders</h2>
+<div class="sourceCode" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1"></a><span class="co"># prepare data loaders</span></span>
+<span id="cb19-2"><a href="#cb19-2"></a>train_dataloader <span class="op">=</span> datautils.DataLoader(dataset<span class="op">=</span>train_set,</span>
+<span id="cb19-3"><a href="#cb19-3"></a>                                        sampler<span class="op">=</span>SequentialSampler(train_set),</span>
+<span id="cb19-4"><a href="#cb19-4"></a>                                        batch_size<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb19-5"><a href="#cb19-5"></a>                                        drop_last<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb19-6"><a href="#cb19-6"></a>                                        shuffle<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb19-7"><a href="#cb19-7"></a></span>
+<span id="cb19-8"><a href="#cb19-8"></a></span>
+<span id="cb19-9"><a href="#cb19-9"></a>valid_dataloader <span class="op">=</span> datautils.DataLoader(dataset<span class="op">=</span>valid_set,</span>
+<span id="cb19-10"><a href="#cb19-10"></a>                                        sampler<span class="op">=</span>SequentialSampler(valid_set),</span>
+<span id="cb19-11"><a href="#cb19-11"></a>                                        batch_size<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb19-12"><a href="#cb19-12"></a>                                        drop_last<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb19-13"><a href="#cb19-13"></a>                                        shuffle<span class="op">=</span><span class="va">False</span>)</span></code></pre></div>
 <p>Helper training functions are then instantiated. It is important to note that in training, we offset our batch by 1, yielding two 1024-length sequences (the maximum length for DistilGPT-2). Training a language model is training the model to predict the next word. We offset the sequence <code>y</code> by 1 since our “target” per token in <code>x</code> is the token to it’s right. Offsetting our inputs by one space is general practice for language modeling.</p>
 </div>
-<div id="training-and-helper-functions" class="section level2">
-<h2><span class="header-section-number">2.5</span> Training and Helper Functions</h2>
-<div class="sourceCode" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb22-1" title="1"><span class="co"># time function</span></a>
-<a class="sourceLine" id="cb22-2" title="2"><span class="kw">def</span> format_time(elapsed):</a>
-<a class="sourceLine" id="cb22-3" title="3">    <span class="co">&#39;&#39;&#39;</span></a>
-<a class="sourceLine" id="cb22-4" title="4"><span class="co">    Takes a time in seconds and returns a string hh:mm:ss</span></a>
-<a class="sourceLine" id="cb22-5" title="5"><span class="co">    &#39;&#39;&#39;</span></a>
-<a class="sourceLine" id="cb22-6" title="6">    <span class="co"># round to the nearest second.</span></a>
-<a class="sourceLine" id="cb22-7" title="7">    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</a>
-<a class="sourceLine" id="cb22-8" title="8">    <span class="co"># format as hh:mm:ss</span></a>
-<a class="sourceLine" id="cb22-9" title="9">    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</a>
-<a class="sourceLine" id="cb22-10" title="10"></a>
-<a class="sourceLine" id="cb22-11" title="11"></a>
-<a class="sourceLine" id="cb22-12" title="12"><span class="kw">def</span> train(model, dataloader, optimizer):</a>
-<a class="sourceLine" id="cb22-13" title="13"></a>
-<a class="sourceLine" id="cb22-14" title="14">    <span class="co"># capture time</span></a>
-<a class="sourceLine" id="cb22-15" title="15">    total_t0 <span class="op">=</span> time.time()</a>
-<a class="sourceLine" id="cb22-16" title="16"></a>
-<a class="sourceLine" id="cb22-17" title="17">    <span class="co"># Perform one full pass over the training set.</span></a>
-<a class="sourceLine" id="cb22-18" title="18">    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</a>
-<a class="sourceLine" id="cb22-19" title="19">    <span class="bu">print</span>(<span class="st">&#39;======== Epoch </span><span class="sc">{:}</span><span class="st"> / </span><span class="sc">{:}</span><span class="st"> ========&#39;</span>.<span class="bu">format</span>(epoch <span class="op">+</span> <span class="dv">1</span>, epochs))</a>
-<a class="sourceLine" id="cb22-20" title="20">    <span class="bu">print</span>(<span class="st">&#39;Training...&#39;</span>)</a>
-<a class="sourceLine" id="cb22-21" title="21"></a>
-<a class="sourceLine" id="cb22-22" title="22">    <span class="co"># reset total loss for epoch</span></a>
-<a class="sourceLine" id="cb22-23" title="23">    train_total_loss <span class="op">=</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb22-24" title="24"></a>
-<a class="sourceLine" id="cb22-25" title="25">    <span class="co"># put model into traning mode</span></a>
-<a class="sourceLine" id="cb22-26" title="26">    model.train()</a>
-<a class="sourceLine" id="cb22-27" title="27"></a>
-<a class="sourceLine" id="cb22-28" title="28">    <span class="co"># for each batch of training data...</span></a>
-<a class="sourceLine" id="cb22-29" title="29">    <span class="cf">for</span> step, batch <span class="kw">in</span> <span class="bu">enumerate</span>(dataloader):</a>
-<a class="sourceLine" id="cb22-30" title="30"></a>
-<a class="sourceLine" id="cb22-31" title="31">        <span class="co"># progress update every 40 batches.</span></a>
-<a class="sourceLine" id="cb22-32" title="32">        <span class="cf">if</span> step <span class="op">%</span> <span class="dv">40</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> step <span class="op">==</span> <span class="dv">0</span>:</a>
-<a class="sourceLine" id="cb22-33" title="33"></a>
-<a class="sourceLine" id="cb22-34" title="34">            <span class="co"># Report progress.</span></a>
-<a class="sourceLine" id="cb22-35" title="35">            <span class="bu">print</span>(<span class="st">&#39;  Batch {:&gt;5,}  of  {:&gt;5,}.&#39;</span>.<span class="bu">format</span>(step, <span class="bu">len</span>(dataloader)))</a>
-<a class="sourceLine" id="cb22-36" title="36"></a>
-<a class="sourceLine" id="cb22-37" title="37">        <span class="co"># Unpack this training batch from our dataloader:</span></a>
-<a class="sourceLine" id="cb22-38" title="38">        <span class="co">#</span></a>
-<a class="sourceLine" id="cb22-39" title="39">        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></a>
-<a class="sourceLine" id="cb22-40" title="40">        <span class="co">#</span></a>
-<a class="sourceLine" id="cb22-41" title="41">        <span class="co"># `batch` contains our text in a PyTorch tensor</span></a>
-<a class="sourceLine" id="cb22-42" title="42">        <span class="co">#  that we need to slice opposite ends off</span></a>
-<a class="sourceLine" id="cb22-43" title="43">        x <span class="op">=</span> batch[:, :<span class="op">-</span><span class="dv">1</span>].cuda()</a>
-<a class="sourceLine" id="cb22-44" title="44">        y <span class="op">=</span> batch[:, <span class="dv">1</span>:].cuda()</a>
-<a class="sourceLine" id="cb22-45" title="45"></a>
-<a class="sourceLine" id="cb22-46" title="46">        <span class="co"># clear previously calculated gradients</span></a>
-<a class="sourceLine" id="cb22-47" title="47">        optimizer.zero_grad()</a>
-<a class="sourceLine" id="cb22-48" title="48"></a>
-<a class="sourceLine" id="cb22-49" title="49">        <span class="co"># runs the forward pass with autocasting.</span></a>
-<a class="sourceLine" id="cb22-50" title="50">        <span class="cf">with</span> autocast():</a>
-<a class="sourceLine" id="cb22-51" title="51">            <span class="co"># forward propagation (evaluate model on training batch)</span></a>
-<a class="sourceLine" id="cb22-52" title="52">            logits <span class="op">=</span> model(input_ids<span class="op">=</span>x)[<span class="dv">0</span>]</a>
-<a class="sourceLine" id="cb22-53" title="53"></a>
-<a class="sourceLine" id="cb22-54" title="54">            loss <span class="op">=</span> criterion(logits.flatten(<span class="dv">0</span>, <span class="dv">1</span>), y.flatten(<span class="dv">0</span>))</a>
-<a class="sourceLine" id="cb22-55" title="55">            <span class="co"># sum the training loss over all batches for average loss at end</span></a>
-<a class="sourceLine" id="cb22-56" title="56">            <span class="co"># loss is a tensor containing a single value</span></a>
-<a class="sourceLine" id="cb22-57" title="57">            train_total_loss <span class="op">+=</span> loss.item()</a>
-<a class="sourceLine" id="cb22-58" title="58"></a>
-<a class="sourceLine" id="cb22-59" title="59">        <span class="co"># Scales loss.  Calls backward() on scaled loss to create scaled gradients.</span></a>
-<a class="sourceLine" id="cb22-60" title="60">        <span class="co"># Backward passes under autocast are not recommended.</span></a>
-<a class="sourceLine" id="cb22-61" title="61">        <span class="co"># Backward ops run in the same dtype autocast chose for corresponding forward ops.</span></a>
-<a class="sourceLine" id="cb22-62" title="62">        scaler.scale(loss).backward()</a>
-<a class="sourceLine" id="cb22-63" title="63"></a>
-<a class="sourceLine" id="cb22-64" title="64">        <span class="co"># clip the gradients to 1 to reduce exploding gradients</span></a>
-<a class="sourceLine" id="cb22-65" title="65">        torch.nn.utils.clip_grad_norm_(model.parameters(), <span class="fl">1.0</span>)</a>
-<a class="sourceLine" id="cb22-66" title="66"></a>
-<a class="sourceLine" id="cb22-67" title="67">        <span class="co"># scaler.step() first unscales the gradients of the optimizer&#39;s assigned params.</span></a>
-<a class="sourceLine" id="cb22-68" title="68">        <span class="co"># If these gradients do not contain infs or NaNs, optimizer.step() is then called,</span></a>
-<a class="sourceLine" id="cb22-69" title="69">        <span class="co"># otherwise, optimizer.step() is skipped.</span></a>
-<a class="sourceLine" id="cb22-70" title="70">        scaler.step(optimizer)</a>
-<a class="sourceLine" id="cb22-71" title="71"></a>
-<a class="sourceLine" id="cb22-72" title="72">        <span class="co"># Updates the scale for next iteration.</span></a>
-<a class="sourceLine" id="cb22-73" title="73">        scaler.update()</a>
-<a class="sourceLine" id="cb22-74" title="74"></a>
-<a class="sourceLine" id="cb22-75" title="75">        <span class="co"># update the learning rate</span></a>
-<a class="sourceLine" id="cb22-76" title="76">        scheduler.step()</a>
-<a class="sourceLine" id="cb22-77" title="77"></a>
-<a class="sourceLine" id="cb22-78" title="78">    <span class="co"># calculate the average loss over all of the batches</span></a>
-<a class="sourceLine" id="cb22-79" title="79">    avg_train_loss <span class="op">=</span> train_total_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</a>
-<a class="sourceLine" id="cb22-80" title="80"></a>
-<a class="sourceLine" id="cb22-81" title="81">    <span class="co"># Record all statistics from this epoch.</span></a>
-<a class="sourceLine" id="cb22-82" title="82">    training_stats.append(</a>
-<a class="sourceLine" id="cb22-83" title="83">        {</a>
-<a class="sourceLine" id="cb22-84" title="84">            <span class="st">&#39;Train Loss&#39;</span>: avg_train_loss</a>
-<a class="sourceLine" id="cb22-85" title="85">        }</a>
-<a class="sourceLine" id="cb22-86" title="86">    )</a>
-<a class="sourceLine" id="cb22-87" title="87"></a>
-<a class="sourceLine" id="cb22-88" title="88">    <span class="co"># training time end</span></a>
-<a class="sourceLine" id="cb22-89" title="89">    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</a>
-<a class="sourceLine" id="cb22-90" title="90"></a>
-<a class="sourceLine" id="cb22-91" title="91">    <span class="co"># print result summaries</span></a>
-<a class="sourceLine" id="cb22-92" title="92">    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</a>
-<a class="sourceLine" id="cb22-93" title="93">    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</a>
-<a class="sourceLine" id="cb22-94" title="94">    <span class="bu">print</span>(<span class="st">&quot;epoch | trn loss | trn time &quot;</span>)</a>
-<a class="sourceLine" id="cb22-95" title="95">    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</a>
-<a class="sourceLine" id="cb22-96" title="96"></a>
-<a class="sourceLine" id="cb22-97" title="97">    <span class="cf">return</span> training_stats</a>
-<a class="sourceLine" id="cb22-98" title="98"></a>
-<a class="sourceLine" id="cb22-99" title="99"></a>
-<a class="sourceLine" id="cb22-100" title="100"><span class="kw">def</span> validating(model, dataloader):</a>
-<a class="sourceLine" id="cb22-101" title="101"></a>
-<a class="sourceLine" id="cb22-102" title="102">    <span class="co"># capture validation time</span></a>
-<a class="sourceLine" id="cb22-103" title="103">    total_t0 <span class="op">=</span> time.time()</a>
-<a class="sourceLine" id="cb22-104" title="104"></a>
-<a class="sourceLine" id="cb22-105" title="105">    <span class="co"># After the completion of each training epoch, measure our performance on</span></a>
-<a class="sourceLine" id="cb22-106" title="106">    <span class="co"># our validation set.</span></a>
-<a class="sourceLine" id="cb22-107" title="107">    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</a>
-<a class="sourceLine" id="cb22-108" title="108">    <span class="bu">print</span>(<span class="st">&quot;Running Validation...&quot;</span>)</a>
-<a class="sourceLine" id="cb22-109" title="109"></a>
-<a class="sourceLine" id="cb22-110" title="110">    <span class="co"># put the model in evaluation mode</span></a>
-<a class="sourceLine" id="cb22-111" title="111">    model.<span class="bu">eval</span>()</a>
-<a class="sourceLine" id="cb22-112" title="112"></a>
-<a class="sourceLine" id="cb22-113" title="113">    <span class="co"># track variables</span></a>
-<a class="sourceLine" id="cb22-114" title="114">    total_valid_loss <span class="op">=</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb22-115" title="115"></a>
-<a class="sourceLine" id="cb22-116" title="116">    <span class="co"># evaluate data for one epoch</span></a>
-<a class="sourceLine" id="cb22-117" title="117">    <span class="cf">for</span> batch <span class="kw">in</span> dataloader:</a>
-<a class="sourceLine" id="cb22-118" title="118"></a>
-<a class="sourceLine" id="cb22-119" title="119">        <span class="co"># Unpack this training batch from our dataloader:</span></a>
-<a class="sourceLine" id="cb22-120" title="120">        <span class="co">#</span></a>
-<a class="sourceLine" id="cb22-121" title="121">        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></a>
-<a class="sourceLine" id="cb22-122" title="122">        <span class="co">#</span></a>
-<a class="sourceLine" id="cb22-123" title="123">        <span class="co"># `batch` contains our text in a PyTorch tensor</span></a>
-<a class="sourceLine" id="cb22-124" title="124">        <span class="co">#  that we need to slice opposite ends off</span></a>
-<a class="sourceLine" id="cb22-125" title="125">        x <span class="op">=</span> batch[:, :<span class="op">-</span><span class="dv">1</span>].cuda()</a>
-<a class="sourceLine" id="cb22-126" title="126">        y <span class="op">=</span> batch[:, <span class="dv">1</span>:].cuda()</a>
-<a class="sourceLine" id="cb22-127" title="127"></a>
-<a class="sourceLine" id="cb22-128" title="128">        <span class="co"># tell pytorch not to bother calculating gradients</span></a>
-<a class="sourceLine" id="cb22-129" title="129">        <span class="co"># as its only necessary for training</span></a>
-<a class="sourceLine" id="cb22-130" title="130">        <span class="cf">with</span> torch.no_grad():</a>
-<a class="sourceLine" id="cb22-131" title="131">            <span class="co"># forward propagation (evaluate model on training batch)</span></a>
-<a class="sourceLine" id="cb22-132" title="132">            logits <span class="op">=</span> model(input_ids<span class="op">=</span>x)[<span class="dv">0</span>]</a>
-<a class="sourceLine" id="cb22-133" title="133"></a>
-<a class="sourceLine" id="cb22-134" title="134">            loss <span class="op">=</span> criterion(logits.flatten(<span class="dv">0</span>, <span class="dv">1</span>), y.flatten(<span class="dv">0</span>))</a>
-<a class="sourceLine" id="cb22-135" title="135">            <span class="co"># sum the training loss over all batches for average loss at end</span></a>
-<a class="sourceLine" id="cb22-136" title="136">            <span class="co"># loss is a tensor containing a single value</span></a>
-<a class="sourceLine" id="cb22-137" title="137">            total_valid_loss <span class="op">+=</span> loss.item()</a>
-<a class="sourceLine" id="cb22-138" title="138"></a>
-<a class="sourceLine" id="cb22-139" title="139">    <span class="co"># calculate the average loss over all of the batches.</span></a>
-<a class="sourceLine" id="cb22-140" title="140">    <span class="kw">global</span> avg_val_loss</a>
-<a class="sourceLine" id="cb22-141" title="141">    avg_val_loss <span class="op">=</span> total_valid_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</a>
-<a class="sourceLine" id="cb22-142" title="142"></a>
-<a class="sourceLine" id="cb22-143" title="143">    <span class="co"># Record all statistics from this epoch.</span></a>
-<a class="sourceLine" id="cb22-144" title="144">    valid_stats.append(</a>
-<a class="sourceLine" id="cb22-145" title="145">        {</a>
-<a class="sourceLine" id="cb22-146" title="146">            <span class="st">&#39;Val Loss&#39;</span>: avg_val_loss,</a>
-<a class="sourceLine" id="cb22-147" title="147">            <span class="st">&#39;Val PPL.&#39;</span>: np.exp(avg_val_loss)</a>
-<a class="sourceLine" id="cb22-148" title="148">        }</a>
-<a class="sourceLine" id="cb22-149" title="149">    )</a>
-<a class="sourceLine" id="cb22-150" title="150"></a>
-<a class="sourceLine" id="cb22-151" title="151">    <span class="co"># capture end validation time</span></a>
-<a class="sourceLine" id="cb22-152" title="152">    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</a>
-<a class="sourceLine" id="cb22-153" title="153"></a>
-<a class="sourceLine" id="cb22-154" title="154">    <span class="co"># print result summaries</span></a>
-<a class="sourceLine" id="cb22-155" title="155">    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</a>
-<a class="sourceLine" id="cb22-156" title="156">    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</a>
-<a class="sourceLine" id="cb22-157" title="157">    <span class="bu">print</span>(<span class="st">&quot;epoch | val loss | val ppl | val time&quot;</span>)</a>
-<a class="sourceLine" id="cb22-158" title="158">    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{np.</span>exp(avg_val_loss)<span class="sc">:.3f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</a>
-<a class="sourceLine" id="cb22-159" title="159"></a>
-<a class="sourceLine" id="cb22-160" title="160">    <span class="cf">return</span> valid_stats</a></code></pre></div>
+<div id="training-and-helper-functions" class="section level2" number="2.5">
+<h2 number="2.5"><span class="header-section-number">2.5</span> Training and Helper Functions</h2>
+<div class="sourceCode" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a><span class="co"># time function</span></span>
+<span id="cb20-2"><a href="#cb20-2"></a><span class="kw">def</span> format_time(elapsed):</span>
+<span id="cb20-3"><a href="#cb20-3"></a>    <span class="co">&#39;&#39;&#39;</span></span>
+<span id="cb20-4"><a href="#cb20-4"></a><span class="co">    Takes a time in seconds and returns a string hh:mm:ss</span></span>
+<span id="cb20-5"><a href="#cb20-5"></a><span class="co">    &#39;&#39;&#39;</span></span>
+<span id="cb20-6"><a href="#cb20-6"></a>    <span class="co"># round to the nearest second.</span></span>
+<span id="cb20-7"><a href="#cb20-7"></a>    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</span>
+<span id="cb20-8"><a href="#cb20-8"></a>    <span class="co"># format as hh:mm:ss</span></span>
+<span id="cb20-9"><a href="#cb20-9"></a>    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</span>
+<span id="cb20-10"><a href="#cb20-10"></a></span>
+<span id="cb20-11"><a href="#cb20-11"></a></span>
+<span id="cb20-12"><a href="#cb20-12"></a><span class="kw">def</span> train(model, dataloader, optimizer):</span>
+<span id="cb20-13"><a href="#cb20-13"></a></span>
+<span id="cb20-14"><a href="#cb20-14"></a>    <span class="co"># capture time</span></span>
+<span id="cb20-15"><a href="#cb20-15"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb20-16"><a href="#cb20-16"></a></span>
+<span id="cb20-17"><a href="#cb20-17"></a>    <span class="co"># Perform one full pass over the training set.</span></span>
+<span id="cb20-18"><a href="#cb20-18"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb20-19"><a href="#cb20-19"></a>    <span class="bu">print</span>(<span class="st">&#39;======== Epoch </span><span class="sc">{:}</span><span class="st"> / </span><span class="sc">{:}</span><span class="st"> ========&#39;</span>.<span class="bu">format</span>(epoch <span class="op">+</span> <span class="dv">1</span>, epochs))</span>
+<span id="cb20-20"><a href="#cb20-20"></a>    <span class="bu">print</span>(<span class="st">&#39;Training...&#39;</span>)</span>
+<span id="cb20-21"><a href="#cb20-21"></a></span>
+<span id="cb20-22"><a href="#cb20-22"></a>    <span class="co"># reset total loss for epoch</span></span>
+<span id="cb20-23"><a href="#cb20-23"></a>    train_total_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb20-24"><a href="#cb20-24"></a></span>
+<span id="cb20-25"><a href="#cb20-25"></a>    <span class="co"># put model into traning mode</span></span>
+<span id="cb20-26"><a href="#cb20-26"></a>    model.train()</span>
+<span id="cb20-27"><a href="#cb20-27"></a></span>
+<span id="cb20-28"><a href="#cb20-28"></a>    <span class="co"># for each batch of training data...</span></span>
+<span id="cb20-29"><a href="#cb20-29"></a>    <span class="cf">for</span> step, batch <span class="kw">in</span> <span class="bu">enumerate</span>(dataloader):</span>
+<span id="cb20-30"><a href="#cb20-30"></a></span>
+<span id="cb20-31"><a href="#cb20-31"></a>        <span class="co"># progress update every 40 batches.</span></span>
+<span id="cb20-32"><a href="#cb20-32"></a>        <span class="cf">if</span> step <span class="op">%</span> <span class="dv">40</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> step <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb20-33"><a href="#cb20-33"></a></span>
+<span id="cb20-34"><a href="#cb20-34"></a>            <span class="co"># Report progress.</span></span>
+<span id="cb20-35"><a href="#cb20-35"></a>            <span class="bu">print</span>(<span class="st">&#39;  Batch {:&gt;5,}  of  {:&gt;5,}.&#39;</span>.<span class="bu">format</span>(step, <span class="bu">len</span>(dataloader)))</span>
+<span id="cb20-36"><a href="#cb20-36"></a></span>
+<span id="cb20-37"><a href="#cb20-37"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb20-38"><a href="#cb20-38"></a>        <span class="co">#</span></span>
+<span id="cb20-39"><a href="#cb20-39"></a>        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></span>
+<span id="cb20-40"><a href="#cb20-40"></a>        <span class="co">#</span></span>
+<span id="cb20-41"><a href="#cb20-41"></a>        <span class="co"># `batch` contains our text in a PyTorch tensor</span></span>
+<span id="cb20-42"><a href="#cb20-42"></a>        <span class="co">#  that we need to slice opposite ends off</span></span>
+<span id="cb20-43"><a href="#cb20-43"></a>        x <span class="op">=</span> batch[:, :<span class="op">-</span><span class="dv">1</span>].cuda()</span>
+<span id="cb20-44"><a href="#cb20-44"></a>        y <span class="op">=</span> batch[:, <span class="dv">1</span>:].cuda()</span>
+<span id="cb20-45"><a href="#cb20-45"></a></span>
+<span id="cb20-46"><a href="#cb20-46"></a>        <span class="co"># clear previously calculated gradients</span></span>
+<span id="cb20-47"><a href="#cb20-47"></a>        optimizer.zero_grad()</span>
+<span id="cb20-48"><a href="#cb20-48"></a></span>
+<span id="cb20-49"><a href="#cb20-49"></a>        <span class="co"># runs the forward pass with autocasting.</span></span>
+<span id="cb20-50"><a href="#cb20-50"></a>        <span class="cf">with</span> autocast():</span>
+<span id="cb20-51"><a href="#cb20-51"></a>            <span class="co"># forward propagation (evaluate model on training batch)</span></span>
+<span id="cb20-52"><a href="#cb20-52"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>x)[<span class="dv">0</span>]</span>
+<span id="cb20-53"><a href="#cb20-53"></a></span>
+<span id="cb20-54"><a href="#cb20-54"></a>            loss <span class="op">=</span> criterion(logits.flatten(<span class="dv">0</span>, <span class="dv">1</span>), y.flatten(<span class="dv">0</span>))</span>
+<span id="cb20-55"><a href="#cb20-55"></a>            <span class="co"># sum the training loss over all batches for average loss at end</span></span>
+<span id="cb20-56"><a href="#cb20-56"></a>            <span class="co"># loss is a tensor containing a single value</span></span>
+<span id="cb20-57"><a href="#cb20-57"></a>            train_total_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb20-58"><a href="#cb20-58"></a></span>
+<span id="cb20-59"><a href="#cb20-59"></a>        <span class="co"># Scales loss.  Calls backward() on scaled loss to create scaled gradients.</span></span>
+<span id="cb20-60"><a href="#cb20-60"></a>        <span class="co"># Backward passes under autocast are not recommended.</span></span>
+<span id="cb20-61"><a href="#cb20-61"></a>        <span class="co"># Backward ops run in the same dtype autocast chose for corresponding forward ops.</span></span>
+<span id="cb20-62"><a href="#cb20-62"></a>        scaler.scale(loss).backward()</span>
+<span id="cb20-63"><a href="#cb20-63"></a></span>
+<span id="cb20-64"><a href="#cb20-64"></a>        <span class="co"># clip the gradients to 1 to reduce exploding gradients</span></span>
+<span id="cb20-65"><a href="#cb20-65"></a>        torch.nn.utils.clip_grad_norm_(model.parameters(), <span class="fl">1.0</span>)</span>
+<span id="cb20-66"><a href="#cb20-66"></a></span>
+<span id="cb20-67"><a href="#cb20-67"></a>        <span class="co"># scaler.step() first unscales the gradients of the optimizer&#39;s assigned params.</span></span>
+<span id="cb20-68"><a href="#cb20-68"></a>        <span class="co"># If these gradients do not contain infs or NaNs, optimizer.step() is then called,</span></span>
+<span id="cb20-69"><a href="#cb20-69"></a>        <span class="co"># otherwise, optimizer.step() is skipped.</span></span>
+<span id="cb20-70"><a href="#cb20-70"></a>        scaler.step(optimizer)</span>
+<span id="cb20-71"><a href="#cb20-71"></a></span>
+<span id="cb20-72"><a href="#cb20-72"></a>        <span class="co"># Updates the scale for next iteration.</span></span>
+<span id="cb20-73"><a href="#cb20-73"></a>        scaler.update()</span>
+<span id="cb20-74"><a href="#cb20-74"></a></span>
+<span id="cb20-75"><a href="#cb20-75"></a>        <span class="co"># update the learning rate</span></span>
+<span id="cb20-76"><a href="#cb20-76"></a>        scheduler.step()</span>
+<span id="cb20-77"><a href="#cb20-77"></a></span>
+<span id="cb20-78"><a href="#cb20-78"></a>    <span class="co"># calculate the average loss over all of the batches</span></span>
+<span id="cb20-79"><a href="#cb20-79"></a>    avg_train_loss <span class="op">=</span> train_total_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb20-80"><a href="#cb20-80"></a></span>
+<span id="cb20-81"><a href="#cb20-81"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb20-82"><a href="#cb20-82"></a>    training_stats.append(</span>
+<span id="cb20-83"><a href="#cb20-83"></a>        {</span>
+<span id="cb20-84"><a href="#cb20-84"></a>            <span class="st">&#39;Train Loss&#39;</span>: avg_train_loss</span>
+<span id="cb20-85"><a href="#cb20-85"></a>        }</span>
+<span id="cb20-86"><a href="#cb20-86"></a>    )</span>
+<span id="cb20-87"><a href="#cb20-87"></a></span>
+<span id="cb20-88"><a href="#cb20-88"></a>    <span class="co"># training time end</span></span>
+<span id="cb20-89"><a href="#cb20-89"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb20-90"><a href="#cb20-90"></a></span>
+<span id="cb20-91"><a href="#cb20-91"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb20-92"><a href="#cb20-92"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb20-93"><a href="#cb20-93"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb20-94"><a href="#cb20-94"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | trn loss | trn time &quot;</span>)</span>
+<span id="cb20-95"><a href="#cb20-95"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-96"><a href="#cb20-96"></a></span>
+<span id="cb20-97"><a href="#cb20-97"></a>    <span class="cf">return</span> training_stats</span>
+<span id="cb20-98"><a href="#cb20-98"></a></span>
+<span id="cb20-99"><a href="#cb20-99"></a></span>
+<span id="cb20-100"><a href="#cb20-100"></a><span class="kw">def</span> validating(model, dataloader):</span>
+<span id="cb20-101"><a href="#cb20-101"></a></span>
+<span id="cb20-102"><a href="#cb20-102"></a>    <span class="co"># capture validation time</span></span>
+<span id="cb20-103"><a href="#cb20-103"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb20-104"><a href="#cb20-104"></a></span>
+<span id="cb20-105"><a href="#cb20-105"></a>    <span class="co"># After the completion of each training epoch, measure our performance on</span></span>
+<span id="cb20-106"><a href="#cb20-106"></a>    <span class="co"># our validation set.</span></span>
+<span id="cb20-107"><a href="#cb20-107"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb20-108"><a href="#cb20-108"></a>    <span class="bu">print</span>(<span class="st">&quot;Running Validation...&quot;</span>)</span>
+<span id="cb20-109"><a href="#cb20-109"></a></span>
+<span id="cb20-110"><a href="#cb20-110"></a>    <span class="co"># put the model in evaluation mode</span></span>
+<span id="cb20-111"><a href="#cb20-111"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb20-112"><a href="#cb20-112"></a></span>
+<span id="cb20-113"><a href="#cb20-113"></a>    <span class="co"># track variables</span></span>
+<span id="cb20-114"><a href="#cb20-114"></a>    total_valid_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb20-115"><a href="#cb20-115"></a></span>
+<span id="cb20-116"><a href="#cb20-116"></a>    <span class="co"># evaluate data for one epoch</span></span>
+<span id="cb20-117"><a href="#cb20-117"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
+<span id="cb20-118"><a href="#cb20-118"></a></span>
+<span id="cb20-119"><a href="#cb20-119"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb20-120"><a href="#cb20-120"></a>        <span class="co">#</span></span>
+<span id="cb20-121"><a href="#cb20-121"></a>        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></span>
+<span id="cb20-122"><a href="#cb20-122"></a>        <span class="co">#</span></span>
+<span id="cb20-123"><a href="#cb20-123"></a>        <span class="co"># `batch` contains our text in a PyTorch tensor</span></span>
+<span id="cb20-124"><a href="#cb20-124"></a>        <span class="co">#  that we need to slice opposite ends off</span></span>
+<span id="cb20-125"><a href="#cb20-125"></a>        x <span class="op">=</span> batch[:, :<span class="op">-</span><span class="dv">1</span>].cuda()</span>
+<span id="cb20-126"><a href="#cb20-126"></a>        y <span class="op">=</span> batch[:, <span class="dv">1</span>:].cuda()</span>
+<span id="cb20-127"><a href="#cb20-127"></a></span>
+<span id="cb20-128"><a href="#cb20-128"></a>        <span class="co"># tell pytorch not to bother calculating gradients</span></span>
+<span id="cb20-129"><a href="#cb20-129"></a>        <span class="co"># as its only necessary for training</span></span>
+<span id="cb20-130"><a href="#cb20-130"></a>        <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb20-131"><a href="#cb20-131"></a>            <span class="co"># forward propagation (evaluate model on training batch)</span></span>
+<span id="cb20-132"><a href="#cb20-132"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>x)[<span class="dv">0</span>]</span>
+<span id="cb20-133"><a href="#cb20-133"></a></span>
+<span id="cb20-134"><a href="#cb20-134"></a>            loss <span class="op">=</span> criterion(logits.flatten(<span class="dv">0</span>, <span class="dv">1</span>), y.flatten(<span class="dv">0</span>))</span>
+<span id="cb20-135"><a href="#cb20-135"></a>            <span class="co"># sum the training loss over all batches for average loss at end</span></span>
+<span id="cb20-136"><a href="#cb20-136"></a>            <span class="co"># loss is a tensor containing a single value</span></span>
+<span id="cb20-137"><a href="#cb20-137"></a>            total_valid_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb20-138"><a href="#cb20-138"></a></span>
+<span id="cb20-139"><a href="#cb20-139"></a>    <span class="co"># calculate the average loss over all of the batches.</span></span>
+<span id="cb20-140"><a href="#cb20-140"></a>    <span class="kw">global</span> avg_val_loss</span>
+<span id="cb20-141"><a href="#cb20-141"></a>    avg_val_loss <span class="op">=</span> total_valid_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb20-142"><a href="#cb20-142"></a></span>
+<span id="cb20-143"><a href="#cb20-143"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb20-144"><a href="#cb20-144"></a>    valid_stats.append(</span>
+<span id="cb20-145"><a href="#cb20-145"></a>        {</span>
+<span id="cb20-146"><a href="#cb20-146"></a>            <span class="st">&#39;Val Loss&#39;</span>: avg_val_loss,</span>
+<span id="cb20-147"><a href="#cb20-147"></a>            <span class="st">&#39;Val PPL.&#39;</span>: np.exp(avg_val_loss)</span>
+<span id="cb20-148"><a href="#cb20-148"></a>        }</span>
+<span id="cb20-149"><a href="#cb20-149"></a>    )</span>
+<span id="cb20-150"><a href="#cb20-150"></a></span>
+<span id="cb20-151"><a href="#cb20-151"></a>    <span class="co"># capture end validation time</span></span>
+<span id="cb20-152"><a href="#cb20-152"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb20-153"><a href="#cb20-153"></a></span>
+<span id="cb20-154"><a href="#cb20-154"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb20-155"><a href="#cb20-155"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb20-156"><a href="#cb20-156"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb20-157"><a href="#cb20-157"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | val loss | val ppl | val time&quot;</span>)</span>
+<span id="cb20-158"><a href="#cb20-158"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{np.</span>exp(avg_val_loss)<span class="sc">:.3f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-159"><a href="#cb20-159"></a></span>
+<span id="cb20-160"><a href="#cb20-160"></a>    <span class="cf">return</span> valid_stats</span></code></pre></div>
 </div>
-<div id="training-preparation" class="section level2">
-<h2><span class="header-section-number">2.6</span> Training Preparation</h2>
+<div id="training-preparation" class="section level2" number="2.6">
+<h2 number="2.6"><span class="header-section-number">2.6</span> Training Preparation</h2>
 <p>Now we are almost ready to train. A few other preparatory objects are created like the loss criteria, epochs, the optimizer, and our optimizer scheduler.</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb23-1" title="1"></a>
-<a class="sourceLine" id="cb23-2" title="2"><span class="co"># create gradient scaler for mixed precision</span></a>
-<a class="sourceLine" id="cb23-3" title="3">scaler <span class="op">=</span> GradScaler()</a>
-<a class="sourceLine" id="cb23-4" title="4"></a>
-<a class="sourceLine" id="cb23-5" title="5"><span class="co"># training length</span></a>
-<a class="sourceLine" id="cb23-6" title="6">epochs <span class="op">=</span> <span class="dv">8</span></a>
-<a class="sourceLine" id="cb23-7" title="7"></a>
-<a class="sourceLine" id="cb23-8" title="8"><span class="co"># loss function</span></a>
-<a class="sourceLine" id="cb23-9" title="9">criterion <span class="op">=</span> nn.CrossEntropyLoss()</a>
-<a class="sourceLine" id="cb23-10" title="10"></a>
-<a class="sourceLine" id="cb23-11" title="11"><span class="co"># optimizer: Adam w/ Weight Decay Fix</span></a>
-<a class="sourceLine" id="cb23-12" title="12"><span class="co"># set to optimizer_grouped_parameters or model.parameters()</span></a>
-<a class="sourceLine" id="cb23-13" title="13">optimizer <span class="op">=</span> AdamW(model.parameters(),</a>
-<a class="sourceLine" id="cb23-14" title="14">                  lr<span class="op">=</span><span class="fl">2e-5</span>)</a>
-<a class="sourceLine" id="cb23-15" title="15"></a>
-<a class="sourceLine" id="cb23-16" title="16"></a>
-<a class="sourceLine" id="cb23-17" title="17"><span class="co"># Total number of training steps is [number of batches] x [number of epochs].</span></a>
-<a class="sourceLine" id="cb23-18" title="18"><span class="co"># (Note that this is not the same as the number of training samples).</span></a>
-<a class="sourceLine" id="cb23-19" title="19">total_steps <span class="op">=</span> <span class="bu">len</span>(train_dataloader) <span class="op">*</span> epochs</a>
-<a class="sourceLine" id="cb23-20" title="20"></a>
-<a class="sourceLine" id="cb23-21" title="21"><span class="co"># Create the learning rate scheduler.</span></a>
-<a class="sourceLine" id="cb23-22" title="22">scheduler <span class="op">=</span> get_linear_schedule_with_warmup(optimizer,</a>
-<a class="sourceLine" id="cb23-23" title="23">                                            num_warmup_steps<span class="op">=</span><span class="dv">0</span>,</a>
-<a class="sourceLine" id="cb23-24" title="24">                                            num_training_steps<span class="op">=</span>total_steps)</a></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1"></a></span>
+<span id="cb21-2"><a href="#cb21-2"></a><span class="co"># create gradient scaler for mixed precision</span></span>
+<span id="cb21-3"><a href="#cb21-3"></a>scaler <span class="op">=</span> GradScaler()</span>
+<span id="cb21-4"><a href="#cb21-4"></a></span>
+<span id="cb21-5"><a href="#cb21-5"></a><span class="co"># training length</span></span>
+<span id="cb21-6"><a href="#cb21-6"></a>epochs <span class="op">=</span> <span class="dv">8</span></span>
+<span id="cb21-7"><a href="#cb21-7"></a></span>
+<span id="cb21-8"><a href="#cb21-8"></a><span class="co"># loss function</span></span>
+<span id="cb21-9"><a href="#cb21-9"></a>criterion <span class="op">=</span> nn.CrossEntropyLoss()</span>
+<span id="cb21-10"><a href="#cb21-10"></a></span>
+<span id="cb21-11"><a href="#cb21-11"></a><span class="co"># optimizer: Adam w/ Weight Decay Fix</span></span>
+<span id="cb21-12"><a href="#cb21-12"></a><span class="co"># set to optimizer_grouped_parameters or model.parameters()</span></span>
+<span id="cb21-13"><a href="#cb21-13"></a>optimizer <span class="op">=</span> AdamW(model.parameters(),</span>
+<span id="cb21-14"><a href="#cb21-14"></a>                  lr<span class="op">=</span><span class="fl">2e-5</span>)</span>
+<span id="cb21-15"><a href="#cb21-15"></a></span>
+<span id="cb21-16"><a href="#cb21-16"></a></span>
+<span id="cb21-17"><a href="#cb21-17"></a><span class="co"># Total number of training steps is [number of batches] x [number of epochs].</span></span>
+<span id="cb21-18"><a href="#cb21-18"></a><span class="co"># (Note that this is not the same as the number of training samples).</span></span>
+<span id="cb21-19"><a href="#cb21-19"></a>total_steps <span class="op">=</span> <span class="bu">len</span>(train_dataloader) <span class="op">*</span> epochs</span>
+<span id="cb21-20"><a href="#cb21-20"></a></span>
+<span id="cb21-21"><a href="#cb21-21"></a><span class="co"># Create the learning rate scheduler.</span></span>
+<span id="cb21-22"><a href="#cb21-22"></a>scheduler <span class="op">=</span> get_linear_schedule_with_warmup(optimizer,</span>
+<span id="cb21-23"><a href="#cb21-23"></a>                                            num_warmup_steps<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb21-24"><a href="#cb21-24"></a>                                            num_training_steps<span class="op">=</span>total_steps)</span></code></pre></div>
 </div>
-<div id="train" class="section level2">
-<h2><span class="header-section-number">2.7</span> Train</h2>
+<div id="train" class="section level2" number="2.7">
+<h2 number="2.7"><span class="header-section-number">2.7</span> Train</h2>
 <p>Now we are ready to train our model.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb24-1" title="1"><span class="co"># create training result storage</span></a>
-<a class="sourceLine" id="cb24-2" title="2">training_stats <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb24-3" title="3">valid_stats <span class="op">=</span> []</a>
-<a class="sourceLine" id="cb24-4" title="4">best_valid_loss <span class="op">=</span> <span class="bu">float</span>(<span class="st">&#39;inf&#39;</span>)</a>
-<a class="sourceLine" id="cb24-5" title="5"></a>
-<a class="sourceLine" id="cb24-6" title="6"><span class="co"># for each epoch</span></a>
-<a class="sourceLine" id="cb24-7" title="7"><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(epochs):</a>
-<a class="sourceLine" id="cb24-8" title="8">    <span class="co"># train</span></a>
-<a class="sourceLine" id="cb24-9" title="9">    train(model, train_dataloader, optimizer)</a>
-<a class="sourceLine" id="cb24-10" title="10">    <span class="co"># validate</span></a>
-<a class="sourceLine" id="cb24-11" title="11">    validating(model, valid_dataloader)</a>
-<a class="sourceLine" id="cb24-12" title="12">    <span class="co"># check validation loss</span></a>
-<a class="sourceLine" id="cb24-13" title="13">    <span class="cf">if</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>] <span class="op">&lt;</span> best_valid_loss:</a>
-<a class="sourceLine" id="cb24-14" title="14">        best_valid_loss <span class="op">=</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>]</a>
-<a class="sourceLine" id="cb24-15" title="15">        <span class="co"># save best model for use later</span></a>
-<a class="sourceLine" id="cb24-16" title="16">        torch.save(model.state_dict(), <span class="st">&#39;gpt2-model1.pt&#39;</span>)  <span class="co"># torch save</span></a>
-<a class="sourceLine" id="cb24-17" title="17">        model_to_save <span class="op">=</span> model.module <span class="cf">if</span> <span class="bu">hasattr</span>(model, <span class="st">&#39;module&#39;</span>) <span class="cf">else</span> model</a>
-<a class="sourceLine" id="cb24-18" title="18">        model_to_save.save_pretrained(<span class="st">&#39;./model_save/gpt2/&#39;</span>)  <span class="co"># transformers save</span></a>
-<a class="sourceLine" id="cb24-19" title="19">        tokenizer.save_pretrained(<span class="st">&#39;./model_save/gpt2/&#39;</span>)  <span class="co"># transformers save</span></a></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1"></a><span class="co"># create training result storage</span></span>
+<span id="cb22-2"><a href="#cb22-2"></a>training_stats <span class="op">=</span> []</span>
+<span id="cb22-3"><a href="#cb22-3"></a>valid_stats <span class="op">=</span> []</span>
+<span id="cb22-4"><a href="#cb22-4"></a>best_valid_loss <span class="op">=</span> <span class="bu">float</span>(<span class="st">&#39;inf&#39;</span>)</span>
+<span id="cb22-5"><a href="#cb22-5"></a></span>
+<span id="cb22-6"><a href="#cb22-6"></a><span class="co"># for each epoch</span></span>
+<span id="cb22-7"><a href="#cb22-7"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(epochs):</span>
+<span id="cb22-8"><a href="#cb22-8"></a>    <span class="co"># train</span></span>
+<span id="cb22-9"><a href="#cb22-9"></a>    train(model, train_dataloader, optimizer)</span>
+<span id="cb22-10"><a href="#cb22-10"></a>    <span class="co"># validate</span></span>
+<span id="cb22-11"><a href="#cb22-11"></a>    validating(model, valid_dataloader)</span>
+<span id="cb22-12"><a href="#cb22-12"></a>    <span class="co"># check validation loss</span></span>
+<span id="cb22-13"><a href="#cb22-13"></a>    <span class="cf">if</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>] <span class="op">&lt;</span> best_valid_loss:</span>
+<span id="cb22-14"><a href="#cb22-14"></a>        best_valid_loss <span class="op">=</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>]</span>
+<span id="cb22-15"><a href="#cb22-15"></a>        <span class="co"># save best model for use later</span></span>
+<span id="cb22-16"><a href="#cb22-16"></a>        torch.save(model.state_dict(), <span class="st">&#39;gpt2-model1.pt&#39;</span>)  <span class="co"># torch save</span></span>
+<span id="cb22-17"><a href="#cb22-17"></a>        model_to_save <span class="op">=</span> model.module <span class="cf">if</span> <span class="bu">hasattr</span>(model, <span class="st">&#39;module&#39;</span>) <span class="cf">else</span> model</span>
+<span id="cb22-18"><a href="#cb22-18"></a>        model_to_save.save_pretrained(<span class="st">&#39;./model_save/gpt2/&#39;</span>)  <span class="co"># transformers save</span></span>
+<span id="cb22-19"><a href="#cb22-19"></a>        tokenizer.save_pretrained(<span class="st">&#39;./model_save/gpt2/&#39;</span>)  <span class="co"># transformers save</span></span></code></pre></div>
 <pre><code>## 
 ## ======== Epoch 1 / 8 ========
 ## Training...
@@ -858,7 +686,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     1 | 3.70191 | 0:03:06
+##     1 | 3.70191 | 0:03:05
 ## [{&#39;Train Loss&#39;: 3.701909479125658}]
 ## 
 ## Running Validation...
@@ -901,7 +729,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     2 | 3.62447 | 0:03:07
+##     2 | 3.62447 | 0:03:08
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}]
 ## 
 ## Running Validation...
@@ -944,7 +772,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     3 | 3.59240 | 0:03:07
+##     3 | 3.59240 | 0:03:03
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}, {&#39;Train Loss&#39;: 3.5924020607545026}]
 ## 
 ## Running Validation...
@@ -987,7 +815,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     4 | 3.57474 | 0:03:07
+##     4 | 3.57474 | 0:03:03
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}, {&#39;Train Loss&#39;: 3.5924020607545026}, {&#39;Train Loss&#39;: 3.574735596478526}]
 ## 
 ## Running Validation...
@@ -1030,7 +858,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     5 | 3.56358 | 0:03:07
+##     5 | 3.56358 | 0:03:06
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}, {&#39;Train Loss&#39;: 3.5924020607545026}, {&#39;Train Loss&#39;: 3.574735596478526}, {&#39;Train Loss&#39;: 3.5635797964466462}]
 ## 
 ## Running Validation...
@@ -1073,7 +901,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     6 | 3.55630 | 0:03:07
+##     6 | 3.55630 | 0:03:09
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}, {&#39;Train Loss&#39;: 3.5924020607545026}, {&#39;Train Loss&#39;: 3.574735596478526}, {&#39;Train Loss&#39;: 3.5635797964466462}, {&#39;Train Loss&#39;: 3.5563041921535983}]
 ## 
 ## Running Validation...
@@ -1116,7 +944,7 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## 
 ## summary results
 ## epoch | trn loss | trn time 
-##     7 | 3.55258 | 0:03:07
+##     7 | 3.55258 | 0:03:08
 ## [{&#39;Train Loss&#39;: 3.701909479125658}, {&#39;Train Loss&#39;: 3.624465454944465}, {&#39;Train Loss&#39;: 3.5924020607545026}, {&#39;Train Loss&#39;: 3.574735596478526}, {&#39;Train Loss&#39;: 3.5635797964466462}, {&#39;Train Loss&#39;: 3.5563041921535983}, {&#39;Train Loss&#39;: 3.5525805800882746}]
 ## 
 ## Running Validation...
@@ -1173,8 +1001,8 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\torch\optim\lr_scheduler.py:123: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
 ##   &quot;https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate&quot;, UserWarning)</code></pre>
 </div>
-<div id="beam-search-text-generation" class="section level2">
-<h2><span class="header-section-number">2.8</span> Beam Search: Text Generation</h2>
+<div id="beam-search-text-generation" class="section level2" number="2.8">
+<h2 number="2.8"><span class="header-section-number">2.8</span> Beam Search: Text Generation</h2>
 <p>While there are a couple of different ways to generate predictions, I found that beam search provided the best results. There are several parameters you should play around with to get great predictions:</p>
 <ol style="list-style-type: decimal">
 <li><p><code>temperature</code> – very low values, circa below .5 tended to create near unintelligble text while values above 1, the default, seemed better. This value impacts the next token’s probability.</p></li>
@@ -1183,8 +1011,8 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 <li><p><code>num_beams</code> – open for experimentation. <code>Num_beams</code>represents how many sequences will be generated, returning the sequence whose overall probability is the highest</p></li>
 <li><p><code>num_return_sequences</code> – how many examples you want returned.</p></li>
 </ol>
-<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb26-1" title="1">model.<span class="bu">eval</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-2" title="2"><span class="co"># beam search</span></a></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1"></a>model.<span class="bu">eval</span>()<span class="op">;</span></span>
+<span id="cb24-2"><a href="#cb24-2"></a><span class="co"># beam search</span></span></code></pre></div>
 <pre><code>## GPT2LMHeadModel(
 ##   (transformer): GPT2Model(
 ##     (wte): Embedding(50257, 768)
@@ -1286,49 +1114,73 @@ Downloading: 100%|##########| 353M/353M [00:16&lt;00:00, 21.0MB/s]
 ##   )
 ##   (lm_head): Linear(in_features=768, out_features=50257, bias=False)
 ## )</code></pre>
-<div class="sourceCode" id="cb28"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb28-1" title="1">text <span class="op">=</span> <span class="st">&quot;The Afghan National Army reported&quot;</span></a>
-<a class="sourceLine" id="cb28-2" title="2">ids <span class="op">=</span> torch.tensor(tokenizer.encode(text)).unsqueeze(<span class="dv">0</span>).cuda()</a>
-<a class="sourceLine" id="cb28-3" title="3">generated_ids <span class="op">=</span> model.generate(</a>
-<a class="sourceLine" id="cb28-4" title="4">                        input_ids<span class="op">=</span>ids,  <span class="co"># input</span></a>
-<a class="sourceLine" id="cb28-5" title="5">                        max_length<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 20</span></a>
-<a class="sourceLine" id="cb28-6" title="6">                        min_length<span class="op">=</span><span class="dv">0</span>,  <span class="co"># default 0</span></a>
-<a class="sourceLine" id="cb28-7" title="7">                        do_sample<span class="op">=</span><span class="va">True</span>,  <span class="co"># don&#39;t use greedy decoding</span></a>
-<a class="sourceLine" id="cb28-8" title="8">                        early_stopping<span class="op">=</span><span class="va">False</span>,  <span class="co"># search is stopped when at least num_beams sentences finished</span></a>
-<a class="sourceLine" id="cb28-9" title="9">                        temperature<span class="op">=</span><span class="fl">2.45</span>,  <span class="co"># default 1.0</span></a>
-<a class="sourceLine" id="cb28-10" title="10">                        top_k<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 50</span></a>
-<a class="sourceLine" id="cb28-11" title="11">                        top_p<span class="op">=</span><span class="fl">0.7</span>,  <span class="co"># default 1.0</span></a>
-<a class="sourceLine" id="cb28-12" title="12">                        repetition_penalty<span class="op">=</span><span class="fl">2.0</span>,  <span class="co"># rep. penalty</span></a>
-<a class="sourceLine" id="cb28-13" title="13">                        num_beams<span class="op">=</span><span class="dv">6</span>,</a>
-<a class="sourceLine" id="cb28-14" title="14">                        num_return_sequences<span class="op">=</span><span class="dv">2</span>, <span class="co">#  num ind. computed returned sequences</span></a>
-<a class="sourceLine" id="cb28-15" title="15">                        bos_token_id<span class="op">=</span>tokenizer.bos_token_id</a>
-<a class="sourceLine" id="cb28-16" title="16">                        )</a></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1"></a>text <span class="op">=</span> <span class="st">&quot;The Afghan National Army reported&quot;</span></span>
+<span id="cb26-2"><a href="#cb26-2"></a>ids <span class="op">=</span> torch.tensor(tokenizer.encode(text)).unsqueeze(<span class="dv">0</span>).cuda()</span>
+<span id="cb26-3"><a href="#cb26-3"></a>generated_ids <span class="op">=</span> model.generate(</span>
+<span id="cb26-4"><a href="#cb26-4"></a>                        input_ids<span class="op">=</span>ids,  <span class="co"># input</span></span>
+<span id="cb26-5"><a href="#cb26-5"></a>                        max_length<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 20</span></span>
+<span id="cb26-6"><a href="#cb26-6"></a>                        min_length<span class="op">=</span><span class="dv">0</span>,  <span class="co"># default 0</span></span>
+<span id="cb26-7"><a href="#cb26-7"></a>                        do_sample<span class="op">=</span><span class="va">True</span>,  <span class="co"># don&#39;t use greedy decoding</span></span>
+<span id="cb26-8"><a href="#cb26-8"></a>                        early_stopping<span class="op">=</span><span class="va">False</span>,  <span class="co"># search is stopped when at least num_beams sentences finished</span></span>
+<span id="cb26-9"><a href="#cb26-9"></a>                        temperature<span class="op">=</span><span class="fl">2.45</span>,  <span class="co"># default 1.0</span></span>
+<span id="cb26-10"><a href="#cb26-10"></a>                        top_k<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 50</span></span>
+<span id="cb26-11"><a href="#cb26-11"></a>                        top_p<span class="op">=</span><span class="fl">0.7</span>,  <span class="co"># default 1.0</span></span>
+<span id="cb26-12"><a href="#cb26-12"></a>                        repetition_penalty<span class="op">=</span><span class="fl">2.0</span>,  <span class="co"># rep. penalty</span></span>
+<span id="cb26-13"><a href="#cb26-13"></a>                        num_beams<span class="op">=</span><span class="dv">6</span>,</span>
+<span id="cb26-14"><a href="#cb26-14"></a>                        num_return_sequences<span class="op">=</span><span class="dv">2</span>, <span class="co">#  num ind. computed returned sequences</span></span>
+<span id="cb26-15"><a href="#cb26-15"></a>                        bos_token_id<span class="op">=</span>tokenizer.bos_token_id</span>
+<span id="cb26-16"><a href="#cb26-16"></a>                        )</span></code></pre></div>
 <pre><code>## Setting `pad_token_id` to 50256 (first `eos_token_id`) to generate sequence</code></pre>
-<div class="sourceCode" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb30-1" title="1"><span class="bu">print</span>([tokenizer.decode(g, skip_special_tokens<span class="op">=</span><span class="va">True</span>, clean_up_tokenization_spaces<span class="op">=</span><span class="va">True</span>) <span class="cf">for</span> g <span class="kw">in</span> generated_ids])</a></code></pre></div>
-<pre><code>## [&#39;The Afghan National Army reported that a mine explosion on the Kabul Ghouta district, at around 9:00am on Saturday night, killed at least 17 people and destroyed several properties. The blast took place as it was being&#39;, &#39;The Afghan National Army reported a bomb blast that killed at least six Afghan soldiers in Kabul yesterday morning, but the exact number is not known. However, officials of the Taliban have denied the attack and said no such incident took place&#39;]</code></pre>
-<div class="sourceCode" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb32-1" title="1"><span class="co"># beam search</span></a>
-<a class="sourceLine" id="cb32-2" title="2">text <span class="op">=</span> <span class="st">&quot;In Helmand Province,&quot;</span></a>
-<a class="sourceLine" id="cb32-3" title="3">ids <span class="op">=</span> torch.tensor(tokenizer.encode(text)).unsqueeze(<span class="dv">0</span>).cuda()</a>
-<a class="sourceLine" id="cb32-4" title="4">generated_ids <span class="op">=</span> model.generate(</a>
-<a class="sourceLine" id="cb32-5" title="5">                        input_ids<span class="op">=</span>ids,  <span class="co"># input</span></a>
-<a class="sourceLine" id="cb32-6" title="6">                        max_length<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 20</span></a>
-<a class="sourceLine" id="cb32-7" title="7">                        min_length<span class="op">=</span><span class="dv">0</span>,  <span class="co"># default 0</span></a>
-<a class="sourceLine" id="cb32-8" title="8">                        do_sample<span class="op">=</span><span class="va">True</span>,  <span class="co"># don&#39;t use greedy decoding</span></a>
-<a class="sourceLine" id="cb32-9" title="9">                        early_stopping<span class="op">=</span><span class="va">False</span>,  <span class="co"># search is stopped when at least num_beams sentences finished</span></a>
-<a class="sourceLine" id="cb32-10" title="10">                        temperature<span class="op">=</span><span class="fl">2.45</span>,  <span class="co"># default 1.0</span></a>
-<a class="sourceLine" id="cb32-11" title="11">                        top_k<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 50</span></a>
-<a class="sourceLine" id="cb32-12" title="12">                        top_p<span class="op">=</span><span class="fl">0.7</span>,  <span class="co"># default 1.0</span></a>
-<a class="sourceLine" id="cb32-13" title="13">                        repetition_penalty<span class="op">=</span><span class="fl">2.0</span>,  <span class="co"># rep. penalty</span></a>
-<a class="sourceLine" id="cb32-14" title="14">                        num_beams<span class="op">=</span><span class="dv">6</span>,</a>
-<a class="sourceLine" id="cb32-15" title="15">                        num_return_sequences<span class="op">=</span><span class="dv">2</span>, <span class="co">#  num ind. computed returned sequences</span></a>
-<a class="sourceLine" id="cb32-16" title="16">                        bos_token_id<span class="op">=</span>tokenizer.bos_token_id</a>
-<a class="sourceLine" id="cb32-17" title="17">                        )</a></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1"></a>results <span class="op">=</span> [tokenizer.decode(g, skip_special_tokens<span class="op">=</span><span class="va">True</span>, clean_up_tokenization_spaces<span class="op">=</span><span class="va">True</span>) <span class="cf">for</span> g <span class="kw">in</span> generated_ids]</span>
+<span id="cb28-2"><a href="#cb28-2"></a></span>
+<span id="cb28-3"><a href="#cb28-3"></a><span class="cf">for</span> i <span class="kw">in</span> results:</span>
+<span id="cb28-4"><a href="#cb28-4"></a>    <span class="bu">print</span>(i, end<span class="op">=</span><span class="st">&#39;</span><span class="ch">\n</span><span class="st"> </span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
+<pre><code>## The Afghan National Army reported that a mine explosion on the Kabul Ghouta district, at around 9:00am on Saturday night, killed at least 17 people and destroyed several properties. The blast took place as it was being
+##  
+## The Afghan National Army reported a bomb blast that killed at least six Afghan soldiers in Kabul yesterday morning, but the exact number is not known. However, officials of the Taliban have denied the attack and said no such incident took place
+## </code></pre>
+<div class="sourceCode" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1"></a><span class="co"># beam search</span></span>
+<span id="cb30-2"><a href="#cb30-2"></a>text <span class="op">=</span> <span class="st">&quot;In Helmand Province, the Taliban&quot;</span></span>
+<span id="cb30-3"><a href="#cb30-3"></a>ids <span class="op">=</span> torch.tensor(tokenizer.encode(text)).unsqueeze(<span class="dv">0</span>).cuda()</span>
+<span id="cb30-4"><a href="#cb30-4"></a>generated_ids <span class="op">=</span> model.generate(</span>
+<span id="cb30-5"><a href="#cb30-5"></a>                        input_ids<span class="op">=</span>ids,  <span class="co"># input</span></span>
+<span id="cb30-6"><a href="#cb30-6"></a>                        max_length<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 20</span></span>
+<span id="cb30-7"><a href="#cb30-7"></a>                        min_length<span class="op">=</span><span class="dv">0</span>,  <span class="co"># default 0</span></span>
+<span id="cb30-8"><a href="#cb30-8"></a>                        do_sample<span class="op">=</span><span class="va">True</span>,  <span class="co"># don&#39;t use greedy decoding</span></span>
+<span id="cb30-9"><a href="#cb30-9"></a>                        early_stopping<span class="op">=</span><span class="va">False</span>,  <span class="co"># search is stopped when at least num_beams sentences finished</span></span>
+<span id="cb30-10"><a href="#cb30-10"></a>                        temperature<span class="op">=</span><span class="fl">2.45</span>,  <span class="co"># default 1.0</span></span>
+<span id="cb30-11"><a href="#cb30-11"></a>                        top_k<span class="op">=</span><span class="dv">45</span>,  <span class="co"># default 50</span></span>
+<span id="cb30-12"><a href="#cb30-12"></a>                        top_p<span class="op">=</span><span class="fl">0.7</span>,  <span class="co"># default 1.0</span></span>
+<span id="cb30-13"><a href="#cb30-13"></a>                        repetition_penalty<span class="op">=</span><span class="fl">2.0</span>,  <span class="co"># rep. penalty</span></span>
+<span id="cb30-14"><a href="#cb30-14"></a>                        num_beams<span class="op">=</span><span class="dv">6</span>,</span>
+<span id="cb30-15"><a href="#cb30-15"></a>                        num_return_sequences<span class="op">=</span><span class="dv">2</span>, <span class="co">#  num ind. computed returned sequences</span></span>
+<span id="cb30-16"><a href="#cb30-16"></a>                        bos_token_id<span class="op">=</span>tokenizer.bos_token_id</span>
+<span id="cb30-17"><a href="#cb30-17"></a>                        )</span></code></pre></div>
 <pre><code>## Setting `pad_token_id` to 50256 (first `eos_token_id`) to generate sequence</code></pre>
-<div class="sourceCode" id="cb34"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb34-1" title="1"><span class="bu">print</span>([tokenizer.decode(g, skip_special_tokens<span class="op">=</span><span class="va">True</span>, clean_up_tokenization_spaces<span class="op">=</span><span class="va">True</span>) <span class="cf">for</span> g <span class="kw">in</span> generated_ids])</a></code></pre></div>
-<pre><code>## [&#39;In Helmand Province, Kabul\n\nA report last week showed that Afghan army soldiers had been killed and more than 30 people injured as a result of an armed struggle between Islamic Emirate forces and Afghans in the province of Hel&#39;, &#39;In Helmand Province, Jan 27 (UPI) -- Taliban gunmen killed at least 18 Afghan soldiers on Saturday in a clash that erupted in an area around Kabul, provincial governorate of Helmand Province, local government media reported&#39;]</code></pre>
+<div class="sourceCode" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1"></a>results <span class="op">=</span> [tokenizer.decode(g, skip_special_tokens<span class="op">=</span><span class="va">True</span>, clean_up_tokenization_spaces<span class="op">=</span><span class="va">True</span>) <span class="cf">for</span> g <span class="kw">in</span> generated_ids]</span>
+<span id="cb32-2"><a href="#cb32-2"></a></span>
+<span id="cb32-3"><a href="#cb32-3"></a><span class="cf">for</span> i <span class="kw">in</span> results:</span>
+<span id="cb32-4"><a href="#cb32-4"></a>    <span class="bu">print</span>(i, end<span class="op">=</span><span class="st">&#39;</span><span class="ch">\n</span><span class="st"> </span><span class="ch">\n</span><span class="st">&#39;</span>)</span></code></pre></div>
+<pre><code>## In Helmand Province, the Taliban have killed over 40 soldiers and more than 20 others in a brutal attack against security forces. On Monday, Afghan officials announced they had killed at least 22 policemen and dozens of other people in a
+##  
+## In Helmand Province, the Taliban and its supporters are fighting an Islamic-inspired attack in Kabul this month. (AP Photo/Umm Ismail Aliuddin)
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## </code></pre>
 </div>
 </div>
-<div id="sources" class="section level1">
-<h1><span class="header-section-number">3</span> Sources</h1>
+<div id="sources" class="section level1" number="3">
+<h1 number="3"><span class="header-section-number">3</span> Sources</h1>
 <ul>
 <li><a href="https://github.com/jcblaisecruz02/pytorch-nlp-tpu/tree/master/notebooks" class="uri">https://github.com/jcblaisecruz02/pytorch-nlp-tpu/tree/master/notebooks</a></li>
 </ul>
