@@ -1,5 +1,5 @@
 ---
-title: 'Text Classification: DistilBERT'
+title: 'Classification: DistilBERT'
 permalink: /NLP/DistilBERT
 date: 2020-07-15
 tags:
