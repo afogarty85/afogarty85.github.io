@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Andrew Fogarty" />
+
+
+<title>Classification: Capsule Routing</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Classification: Capsule Routing</h1>
+<h4 class="author">Andrew Fogarty</h4>
+<h4 class="date">9/06/2020</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#loading-packages"><span class="toc-section-number">2</span> Loading Packages</a></li>
+<li><a href="#preparing-the-models"><span class="toc-section-number">3</span> Preparing the Models</a></li>
+<li><a href="#load-the-corpus"><span class="toc-section-number">4</span> Load the Corpus</a></li>
+<li><a href="#torch-text-processing-functions"><span class="toc-section-number">5</span> Torch Text Processing Functions</a></li>
+<li><a href="#capsule-model-and-helper-functions"><span class="toc-section-number">6</span> Capsule Model and Helper Functions</a></li>
+<li><a href="#sources"><span class="toc-section-number">7</span> Sources</a></li>
+</ul>
+</div>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># load python</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">library</span>(reticulate)</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="kw">use_condaenv</span>(<span class="st">&quot;my_ml&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># load packages</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="im">import</span> torch</span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="im">import</span> torch.nn.functional <span class="im">as</span> F</span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="im">from</span> torch.cuda.amp <span class="im">import</span> autocast, GradScaler</span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> TensorDataset, random_split, DataLoader, RandomSampler</span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="im">from</span> transformers <span class="im">import</span> T5Tokenizer, T5ForConditionalGeneration</span>
+<span id="cb2-8"><a href="#cb2-8"></a><span class="im">from</span> transformers <span class="im">import</span> AdamW, get_linear_schedule_with_warmup</span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="im">import</span> time</span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="im">import</span> datetime</span>
+<span id="cb2-11"><a href="#cb2-11"></a><span class="im">import</span> random</span>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-13"><a href="#cb2-13"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-14"><a href="#cb2-14"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> accuracy_score, f1_score, precision_score, recall_score, classification_report</span>
+<span id="cb2-15"><a href="#cb2-15"></a><span class="im">import</span> re</span>
+<span id="cb2-16"><a href="#cb2-16"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-17"><a href="#cb2-17"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb2-18"><a href="#cb2-18"></a><span class="im">import</span> optuna</span>
+<span id="cb2-19"><a href="#cb2-19"></a><span class="im">from</span> optuna.pruners <span class="im">import</span> SuccessiveHalvingPruner</span>
+<span id="cb2-20"><a href="#cb2-20"></a><span class="im">from</span> optuna.samplers <span class="im">import</span> TPESampler</span>
+<span id="cb2-21"><a href="#cb2-21"></a></span>
+<span id="cb2-22"><a href="#cb2-22"></a></span>
+<span id="cb2-23"><a href="#cb2-23"></a>torch.cuda.amp.autocast(enabled<span class="op">=</span><span class="va">True</span>)</span></code></pre></div>
+<pre><code>## &lt;torch.cuda.amp.autocast_mode.autocast object at 0x000000003474B548&gt;</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>SEED <span class="op">=</span> <span class="dv">15</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>random.seed(SEED)</span>
+<span id="cb4-3"><a href="#cb4-3"></a>np.random.seed(SEED)</span>
+<span id="cb4-4"><a href="#cb4-4"></a>torch.manual_seed(SEED)</span></code></pre></div>
+<pre><code>## &lt;torch._C.Generator object at 0x000000001F58E050&gt;</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a></span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="co"># tell pytorch to use cuda</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>device <span class="op">=</span> torch.device(<span class="st">&quot;cuda&quot;</span>)</span></code></pre></div>
+<div id="introduction" class="section level1" number="1">
+<h1 number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>While capsule networks have been used in the field of computer vision and CNNs, recent work shows that they work well in Natural Language Processing (NLP) as well. “A capsule is a group of neurons whose outputs represent different properties of the same entity in different contexts. Routing by agreement is an iterative form of clustering in which a capsule detects an entity by looking for agreement among votes from input capsules that have already detected parts of the entity in a previous layer” (Heinsen, 2019). Capsule networks are a means for aggregating the importance of embeddings akin to attention mechanisms.</p>
+<p>In this application, I implement Heinsein routing which is a new general-purpose form of expectation-maximization routing proposed by Hinton et al., 2018. It uses the EM algorithm to cluster similar votes from input capsules to output capsules. Each output capsule iteratively maximizes the probability of input votes assigned to it, given its probabilistic model.</p>
+<p>Similar to other demonstrations hosted on this website, we will use my insurgent propaganda corpus. In a departure from other guides, we will use TorchText to preprocess and postprocess the data so as to gain some experience with the method.</p>
+</div>
+<div id="loading-packages" class="section level1" number="2">
+<h1 number="2"><span class="header-section-number">2</span> Loading Packages</h1>
+<p>We begin by loading necessary packages and helper files</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># Transformers</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="im">import</span> torch</span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb7-4"><a href="#cb7-4"></a><span class="im">import</span> torch.nn.functional <span class="im">as</span> F</span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="im">import</span> time, datetime, random, re</span>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> accuracy_score, f1_score, precision_score, recall_score</span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="im">from</span> transformers <span class="im">import</span> BertModel, BertTokenizer</span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="im">import</span> sys</span>
+<span id="cb7-13"><a href="#cb7-13"></a>sys.path.append(<span class="st">&quot;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">heinsen_routing&quot;</span>)</span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="im">import</span> torchtext <span class="im">as</span> tt</span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="im">from</span> heinsen_routing <span class="im">import</span> Routing</span>
+<span id="cb7-16"><a href="#cb7-16"></a><span class="im">from</span> pytorch_extras <span class="im">import</span> RAdam, SingleCycleScheduler</span>
+<span id="cb7-17"><a href="#cb7-17"></a>torch.manual_seed(<span class="dv">44</span>)</span></code></pre></div>
+<pre><code>## &lt;torch._C.Generator object at 0x000000001F58E050&gt;</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a>DEVICE <span class="op">=</span> <span class="st">&#39;cuda:0&#39;</span></span></code></pre></div>
+</div>
+<div id="preparing-the-models" class="section level1" number="3">
+<h1 number="3"><span class="header-section-number">3</span> Preparing the Models</h1>
+<p>Next, we load the tokenizer and transformer model.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>tokenizer <span class="op">=</span> BertTokenizer.from_pretrained(<span class="st">&#39;bert-base-uncased&#39;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2"></a>lang_model <span class="op">=</span> BertModel.from_pretrained(<span class="st">&#39;bert-base-uncased&#39;</span>, output_hidden_states<span class="op">=</span><span class="va">True</span>, output_attentions<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-3"><a href="#cb10-3"></a>lang_model.cuda(device<span class="op">=</span>DEVICE)<span class="op">;</span></span></code></pre></div>
+<pre><code>## BertModel(
+##   (embeddings): BertEmbeddings(
+##     (word_embeddings): Embedding(30522, 768, padding_idx=0)
+##     (position_embeddings): Embedding(512, 768)
+##     (token_type_embeddings): Embedding(2, 768)
+##     (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##     (dropout): Dropout(p=0.1, inplace=False)
+##   )
+##   (encoder): BertEncoder(
+##     (layer): ModuleList(
+##       (0): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (1): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (2): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (3): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (4): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (5): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (6): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (7): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (8): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (9): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (10): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (11): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##     )
+##   )
+##   (pooler): BertPooler(
+##     (dense): Linear(in_features=768, out_features=768, bias=True)
+##     (activation): Tanh()
+##   )
+## )</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a>lang_model.<span class="bu">eval</span>()<span class="op">;</span></span></code></pre></div>
+<pre><code>## BertModel(
+##   (embeddings): BertEmbeddings(
+##     (word_embeddings): Embedding(30522, 768, padding_idx=0)
+##     (position_embeddings): Embedding(512, 768)
+##     (token_type_embeddings): Embedding(2, 768)
+##     (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##     (dropout): Dropout(p=0.1, inplace=False)
+##   )
+##   (encoder): BertEncoder(
+##     (layer): ModuleList(
+##       (0): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (1): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (2): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (3): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (4): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (5): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (6): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (7): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (8): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (9): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (10): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##       (11): BertLayer(
+##         (attention): BertAttention(
+##           (self): BertSelfAttention(
+##             (query): Linear(in_features=768, out_features=768, bias=True)
+##             (key): Linear(in_features=768, out_features=768, bias=True)
+##             (value): Linear(in_features=768, out_features=768, bias=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##           (output): BertSelfOutput(
+##             (dense): Linear(in_features=768, out_features=768, bias=True)
+##             (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##             (dropout): Dropout(p=0.1, inplace=False)
+##           )
+##         )
+##         (intermediate): BertIntermediate(
+##           (dense): Linear(in_features=768, out_features=3072, bias=True)
+##         )
+##         (output): BertOutput(
+##           (dense): Linear(in_features=3072, out_features=768, bias=True)
+##           (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+##           (dropout): Dropout(p=0.1, inplace=False)
+##         )
+##       )
+##     )
+##   )
+##   (pooler): BertPooler(
+##     (dense): Linear(in_features=768, out_features=768, bias=True)
+##     (activation): Tanh()
+##   )
+## )</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="bu">print</span>(<span class="st">&#39;BERT loaded.&#39;</span>)</span></code></pre></div>
+<pre><code>## BERT loaded.</code></pre>
+</div>
+<div id="load-the-corpus" class="section level1" number="4">
+<h1 number="4"><span class="header-section-number">4</span> Load the Corpus</h1>
+<p>Now we load the corpus and do some minor processing on it.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># prepare and load data</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a><span class="kw">def</span> prepare_df(pkl_location):</span>
+<span id="cb16-3"><a href="#cb16-3"></a>    <span class="co"># read pkl as pandas</span></span>
+<span id="cb16-4"><a href="#cb16-4"></a>    df <span class="op">=</span> pd.read_pickle(pkl_location)</span>
+<span id="cb16-5"><a href="#cb16-5"></a>    <span class="co"># just keep us/kabul labels</span></span>
+<span id="cb16-6"><a href="#cb16-6"></a>    df <span class="op">=</span> df.loc[(df[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="st">&#39;US&#39;</span>) <span class="op">|</span> (df[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="st">&#39;Kabul&#39;</span>)]</span>
+<span id="cb16-7"><a href="#cb16-7"></a>    <span class="co"># mask DV to recode</span></span>
+<span id="cb16-8"><a href="#cb16-8"></a>    us <span class="op">=</span> df[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="st">&#39;US&#39;</span></span>
+<span id="cb16-9"><a href="#cb16-9"></a>    kabul <span class="op">=</span> df[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="st">&#39;Kabul&#39;</span></span>
+<span id="cb16-10"><a href="#cb16-10"></a>    <span class="co"># apply mask</span></span>
+<span id="cb16-11"><a href="#cb16-11"></a>    df.loc[us, <span class="st">&#39;target&#39;</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb16-12"><a href="#cb16-12"></a>    df.loc[kabul, <span class="st">&#39;target&#39;</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb16-13"><a href="#cb16-13"></a>    <span class="co"># reset index</span></span>
+<span id="cb16-14"><a href="#cb16-14"></a>    df <span class="op">=</span> df.reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-15"><a href="#cb16-15"></a>    <span class="cf">return</span> df</span>
+<span id="cb16-16"><a href="#cb16-16"></a></span>
+<span id="cb16-17"><a href="#cb16-17"></a></span>
+<span id="cb16-18"><a href="#cb16-18"></a>df <span class="op">=</span> prepare_df(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">df.pkl&#39;</span>)</span>
+<span id="cb16-19"><a href="#cb16-19"></a></span>
+<span id="cb16-20"><a href="#cb16-20"></a><span class="co"># remove excess white spaces</span></span>
+<span id="cb16-21"><a href="#cb16-21"></a>df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="st">&quot; &quot;</span>.join(x.split()))</span>
+<span id="cb16-22"><a href="#cb16-22"></a></span>
+<span id="cb16-23"><a href="#cb16-23"></a><span class="co"># remove excess spaces near punctuation</span></span>
+<span id="cb16-24"><a href="#cb16-24"></a>df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: re.sub(<span class="vs">r&#39;\s([?.!&quot;](?:\s|$))&#39;</span>, <span class="vs">r&#39;\1&#39;</span>, x))</span>
+<span id="cb16-25"><a href="#cb16-25"></a></span>
+<span id="cb16-26"><a href="#cb16-26"></a><span class="co"># lower case the data</span></span>
+<span id="cb16-27"><a href="#cb16-27"></a>df[<span class="st">&#39;body&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;body&#39;</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: x.lower())</span>
+<span id="cb16-28"><a href="#cb16-28"></a></span>
+<span id="cb16-29"><a href="#cb16-29"></a><span class="co"># send to csv</span></span>
+<span id="cb16-30"><a href="#cb16-30"></a>df <span class="op">=</span> df[[<span class="st">&#39;body&#39;</span>, <span class="st">&#39;target&#39;</span>]]</span>
+<span id="cb16-31"><a href="#cb16-31"></a>df.to_csv(<span class="st">&#39;working_csv.csv&#39;</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div>
+</div>
+<div id="torch-text-processing-functions" class="section level1" number="5">
+<h1 number="5"><span class="header-section-number">5</span> Torch Text Processing Functions</h1>
+<p>Now we prepare some TorchText post-processing functions that will take the input tokens and transform them to their max length for each batch. It will then output their embeddings, seeking only the last 4 layers of the BERT model. Notice that <code>no_grad</code> is enabled which means that we are not fine-tuning the BERT model.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a><span class="co"># my ver</span></span>
+<span id="cb17-2"><a href="#cb17-2"></a><span class="kw">def</span> tokenized_texts_to_embs(tokenized_texts):</span>
+<span id="cb17-3"><a href="#cb17-3"></a>    tokenized_texts <span class="op">=</span> [[<span class="op">*</span>tok_seq] <span class="cf">for</span> tok_seq <span class="kw">in</span> tokenized_texts]</span>
+<span id="cb17-4"><a href="#cb17-4"></a>    lengths <span class="op">=</span> [<span class="bu">len</span>(tok_seq) <span class="cf">for</span> tok_seq <span class="kw">in</span> tokenized_texts]</span>
+<span id="cb17-5"><a href="#cb17-5"></a></span>
+<span id="cb17-6"><a href="#cb17-6"></a>    max_length <span class="op">=</span> <span class="bu">max</span>(lengths)</span>
+<span id="cb17-7"><a href="#cb17-7"></a>    input_toks <span class="op">=</span> [t <span class="op">+</span> [tokenizer.pad_token] <span class="op">*</span> (max_length <span class="op">-</span> l) <span class="cf">for</span> t, l <span class="kw">in</span> <span class="bu">zip</span>(tokenized_texts, lengths)]</span>
+<span id="cb17-8"><a href="#cb17-8"></a></span>
+<span id="cb17-9"><a href="#cb17-9"></a>    input_ids <span class="op">=</span> [tokenizer.encode(tok_seq, add_special_tokens<span class="op">=</span><span class="va">True</span>, truncation<span class="op">=</span><span class="va">True</span>) <span class="cf">for</span> tok_seq <span class="kw">in</span> input_toks]</span>
+<span id="cb17-10"><a href="#cb17-10"></a>    input_ids <span class="op">=</span> torch.tensor(input_ids).cuda()</span>
+<span id="cb17-11"><a href="#cb17-11"></a>    lengths <span class="op">=</span> [<span class="bu">len</span>(tok_seq) <span class="cf">for</span> tok_seq <span class="kw">in</span> input_ids]</span>
+<span id="cb17-12"><a href="#cb17-12"></a>    max_length <span class="op">=</span> <span class="bu">max</span>(lengths)</span>
+<span id="cb17-13"><a href="#cb17-13"></a></span>
+<span id="cb17-14"><a href="#cb17-14"></a>    mask <span class="op">=</span> [[<span class="fl">1.0</span>] <span class="op">*</span> length <span class="op">+</span> [<span class="fl">0.0</span>] <span class="op">*</span> (max_length <span class="op">-</span> length) <span class="cf">for</span> length <span class="kw">in</span> lengths]</span>
+<span id="cb17-15"><a href="#cb17-15"></a>    mask <span class="op">=</span> torch.tensor(mask).cuda() <span class="co"># [batch sz, num toks]</span></span>
+<span id="cb17-16"><a href="#cb17-16"></a></span>
+<span id="cb17-17"><a href="#cb17-17"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb17-18"><a href="#cb17-18"></a>        outputs <span class="op">=</span> lang_model(input_ids<span class="op">=</span>input_ids)</span>
+<span id="cb17-19"><a href="#cb17-19"></a>        embs <span class="op">=</span> torch.stack(outputs[<span class="op">-</span><span class="dv">1</span>], <span class="op">-</span><span class="dv">2</span>)  <span class="co"># [batch sz, n toks, n layers, d emb]</span></span>
+<span id="cb17-20"><a href="#cb17-20"></a>        embs <span class="op">=</span> embs[:, :, <span class="op">-</span><span class="dv">4</span>:, :]  <span class="co"># last 4 layers</span></span>
+<span id="cb17-21"><a href="#cb17-21"></a>    <span class="cf">return</span> mask, embs</span></code></pre></div>
+<p>The functions below tell TorchText to pre-process our text wit hthe tokenizer and then to post-process it with the process detailed above.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2"></a>_stoi <span class="op">=</span> {<span class="st">&#39;Kabul&#39;</span>: <span class="dv">0</span>, <span class="st">&#39;US&#39;</span>: <span class="dv">1</span>}  <span class="co"># {&#39;negative&#39;: 0, &#39;positive&#39;: 1}</span></span>
+<span id="cb18-3"><a href="#cb18-3"></a></span>
+<span id="cb18-4"><a href="#cb18-4"></a>TEXT <span class="op">=</span> tt.data.RawField(</span>
+<span id="cb18-5"><a href="#cb18-5"></a>    preprocessing<span class="op">=</span>tokenizer.tokenize,</span>
+<span id="cb18-6"><a href="#cb18-6"></a>    postprocessing<span class="op">=</span>tokenized_texts_to_embs,</span>
+<span id="cb18-7"><a href="#cb18-7"></a>    is_target<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb18-8"><a href="#cb18-8"></a></span>
+<span id="cb18-9"><a href="#cb18-9"></a>LABEL <span class="op">=</span> tt.data.Field(sequential<span class="op">=</span><span class="va">False</span>, use_vocab<span class="op">=</span><span class="va">False</span>)  <span class="co"># use this if already numeric label</span></span>
+<span id="cb18-10"><a href="#cb18-10"></a></span>
+<span id="cb18-11"><a href="#cb18-11"></a><span class="co">#LABEL = tt.data.RawField(</span></span>
+<span id="cb18-12"><a href="#cb18-12"></a><span class="co">#    postprocessing=lambda samples: torch.tensor([_stoi[s] for s in samples], device=DEVICE),</span></span>
+<span id="cb18-13"><a href="#cb18-13"></a><span class="co">#    is_target=True)</span></span>
+<span id="cb18-14"><a href="#cb18-14"></a><span class="co"># use if not a numeric label</span></span>
+<span id="cb18-15"><a href="#cb18-15"></a></span>
+<span id="cb18-16"><a href="#cb18-16"></a>fields <span class="op">=</span> [(<span class="st">&#39;body&#39;</span>, TEXT), (<span class="st">&#39;target&#39;</span>, LABEL)]</span></code></pre></div>
+<p>Next, we use TorchText to read our corpus from the csv file and then create three stratified data sets for us to work with.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1"></a><span class="co"># stratify split and pre/post proces the data to embeddings</span></span>
+<span id="cb19-2"><a href="#cb19-2"></a>raw_data <span class="op">=</span> tt.data.TabularDataset(<span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">working_csv.csv&#39;</span>, <span class="bu">format</span><span class="op">=</span><span class="st">&#39;csv&#39;</span>, fields<span class="op">=</span>fields, skip_header<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-3"><a href="#cb19-3"></a>trn_ds, val_ds, tst_ds <span class="op">=</span> raw_data.split(split_ratio<span class="op">=</span>[<span class="fl">0.8</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>], stratified<span class="op">=</span><span class="va">True</span>, strata_field<span class="op">=</span><span class="st">&#39;target&#39;</span>, random_state <span class="op">=</span> random.seed(<span class="dv">88</span>))</span>
+<span id="cb19-4"><a href="#cb19-4"></a><span class="bu">print</span>(<span class="st">&#39;Datasets ready.&#39;</span>)</span></code></pre></div>
+<pre><code>## Datasets ready.</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1"></a><span class="bu">print</span>(<span class="st">&#39;Number of samples: {:,} train phrases, {:,} valid sentences, {:,} test sentences.&#39;</span>\</span>
+<span id="cb21-2"><a href="#cb21-2"></a>      .<span class="bu">format</span>(<span class="bu">len</span>(trn_ds), <span class="bu">len</span>(val_ds), <span class="bu">len</span>(tst_ds)))</span></code></pre></div>
+<pre><code>## Number of samples: 8,036 train phrases, 1,005 valid sentences, 1,004 test sentences.</code></pre>
+<p>Nowe we can make TorchText data loaders.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1"></a><span class="co"># Make iterators for each split.</span></span>
+<span id="cb23-2"><a href="#cb23-2"></a>trn_itr, val_itr, tst_itr <span class="op">=</span> tt.data.Iterator.splits(</span>
+<span id="cb23-3"><a href="#cb23-3"></a>    (trn_ds, val_ds, tst_ds),</span>
+<span id="cb23-4"><a href="#cb23-4"></a>    shuffle<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb23-5"><a href="#cb23-5"></a>    sort<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-6"><a href="#cb23-6"></a>    batch_size<span class="op">=</span><span class="dv">16</span>,</span>
+<span id="cb23-7"><a href="#cb23-7"></a>    device<span class="op">=</span>DEVICE)</span></code></pre></div>
+</div>
+<div id="capsule-model-and-helper-functions" class="section level1" number="6">
+<h1 number="6"><span class="header-section-number">6</span> Capsule Model and Helper Functions</h1>
+<div class="sourceCode" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1"></a><span class="co"># time function</span></span>
+<span id="cb24-2"><a href="#cb24-2"></a><span class="kw">def</span> format_time(elapsed):</span>
+<span id="cb24-3"><a href="#cb24-3"></a>    <span class="co">&#39;&#39;&#39;</span></span>
+<span id="cb24-4"><a href="#cb24-4"></a><span class="co">    Takes a time in seconds and returns a string hh:mm:ss</span></span>
+<span id="cb24-5"><a href="#cb24-5"></a><span class="co">    &#39;&#39;&#39;</span></span>
+<span id="cb24-6"><a href="#cb24-6"></a>    <span class="co"># round to the nearest second.</span></span>
+<span id="cb24-7"><a href="#cb24-7"></a>    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</span>
+<span id="cb24-8"><a href="#cb24-8"></a>    <span class="co"># format as hh:mm:ss</span></span>
+<span id="cb24-9"><a href="#cb24-9"></a>    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</span>
+<span id="cb24-10"><a href="#cb24-10"></a></span>
+<span id="cb24-11"><a href="#cb24-11"></a></span>
+<span id="cb24-12"><a href="#cb24-12"></a><span class="co"># sigmoid</span></span>
+<span id="cb24-13"><a href="#cb24-13"></a><span class="kw">class</span> Swish(nn.Module):</span>
+<span id="cb24-14"><a href="#cb24-14"></a></span>
+<span id="cb24-15"><a href="#cb24-15"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb24-16"><a href="#cb24-16"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb24-17"><a href="#cb24-17"></a></span>
+<span id="cb24-18"><a href="#cb24-18"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb24-19"><a href="#cb24-19"></a>        <span class="cf">return</span> x <span class="op">*</span> x.sigmoid()</span>
+<span id="cb24-20"><a href="#cb24-20"></a></span>
+<span id="cb24-21"><a href="#cb24-21"></a></span>
+<span id="cb24-22"><a href="#cb24-22"></a><span class="kw">class</span> Classifier(nn.Module):</span>
+<span id="cb24-23"><a href="#cb24-23"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb24-24"><a href="#cb24-24"></a><span class="co">    Args:</span></span>
+<span id="cb24-25"><a href="#cb24-25"></a><span class="co">        d_depth: int, number of embeddings per token.</span></span>
+<span id="cb24-26"><a href="#cb24-26"></a><span class="co">        d_emb: int, dimension of token embeddings.</span></span>
+<span id="cb24-27"><a href="#cb24-27"></a><span class="co">        d_inp: int, number of features computed per embedding.</span></span>
+<span id="cb24-28"><a href="#cb24-28"></a><span class="co">        d_cap: int, dimension 2 of output capsules.</span></span>
+<span id="cb24-29"><a href="#cb24-29"></a><span class="co">        n_parts: int, number of parts detected.</span></span>
+<span id="cb24-30"><a href="#cb24-30"></a><span class="co">        n_classes: int, number of classes.</span></span>
+<span id="cb24-31"><a href="#cb24-31"></a><span class="co">    Input:</span></span>
+<span id="cb24-32"><a href="#cb24-32"></a><span class="co">        mask: [..., n] tensor with 1.0 for tokens, 0.0 for padding.</span></span>
+<span id="cb24-33"><a href="#cb24-33"></a><span class="co">        embs: [..., n, d_depth, d_emb] embeddings for n tokens.</span></span>
+<span id="cb24-34"><a href="#cb24-34"></a><span class="co">    Output:</span></span>
+<span id="cb24-35"><a href="#cb24-35"></a><span class="co">        a_out: [..., n_classes] class scores.</span></span>
+<span id="cb24-36"><a href="#cb24-36"></a><span class="co">        mu_out: [..., n_classes, 1, d_cap] class capsules.</span></span>
+<span id="cb24-37"><a href="#cb24-37"></a><span class="co">        sig2_out: [..., n_classes, 1, d_cap] class capsule variances.</span></span>
+<span id="cb24-38"><a href="#cb24-38"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb24-39"><a href="#cb24-39"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_depth, d_emb, d_inp, d_cap, n_parts, n_classes):</span>
+<span id="cb24-40"><a href="#cb24-40"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb24-41"><a href="#cb24-41"></a>        <span class="va">self</span>.depth_emb <span class="op">=</span> nn.Parameter(torch.zeros(d_depth, d_emb))</span>
+<span id="cb24-42"><a href="#cb24-42"></a>        <span class="va">self</span>.detect_parts <span class="op">=</span> nn.Sequential(nn.Linear(d_emb, d_inp), Swish(), nn.LayerNorm(d_inp))</span>
+<span id="cb24-43"><a href="#cb24-43"></a>        <span class="va">self</span>.routings <span class="op">=</span> nn.Sequential(</span>
+<span id="cb24-44"><a href="#cb24-44"></a>            Routing(d_cov<span class="op">=</span><span class="dv">1</span>, d_inp<span class="op">=</span>d_inp, d_out<span class="op">=</span>d_cap, n_out<span class="op">=</span>n_parts),</span>
+<span id="cb24-45"><a href="#cb24-45"></a>            Routing(d_cov<span class="op">=</span><span class="dv">1</span>, d_inp<span class="op">=</span>d_cap, d_out<span class="op">=</span>d_cap, n_inp<span class="op">=</span>n_parts, n_out<span class="op">=</span>n_classes),</span>
+<span id="cb24-46"><a href="#cb24-46"></a>        )</span>
+<span id="cb24-47"><a href="#cb24-47"></a>        nn.init.kaiming_normal_(<span class="va">self</span>.detect_parts[<span class="dv">0</span>].weight)</span>
+<span id="cb24-48"><a href="#cb24-48"></a>        nn.init.zeros_(<span class="va">self</span>.detect_parts[<span class="dv">0</span>].bias)</span>
+<span id="cb24-49"><a href="#cb24-49"></a></span>
+<span id="cb24-50"><a href="#cb24-50"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, mask, embs):</span>
+<span id="cb24-51"><a href="#cb24-51"></a>        a <span class="op">=</span> torch.log(mask <span class="op">/</span> (<span class="fl">1.0</span> <span class="op">-</span> mask))                     <span class="co"># -inf to inf (logit)</span></span>
+<span id="cb24-52"><a href="#cb24-52"></a>        a <span class="op">=</span> a.unsqueeze(<span class="op">-</span><span class="dv">1</span>).expand(<span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>, embs.shape[<span class="op">-</span><span class="dv">2</span>])     <span class="co"># [bs, n, d_depth]</span></span>
+<span id="cb24-53"><a href="#cb24-53"></a>        a <span class="op">=</span> a.contiguous().view(a.shape[<span class="dv">0</span>], <span class="op">-</span><span class="dv">1</span>)                <span class="co"># [bs, (n * d_depth)]</span></span>
+<span id="cb24-54"><a href="#cb24-54"></a></span>
+<span id="cb24-55"><a href="#cb24-55"></a>        mu <span class="op">=</span> <span class="va">self</span>.detect_parts(embs <span class="op">+</span> <span class="va">self</span>.depth_emb)          <span class="co"># [bs, n, d_depth, d_inp]</span></span>
+<span id="cb24-56"><a href="#cb24-56"></a>        mu <span class="op">=</span> mu.view(mu.shape[<span class="dv">0</span>], <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, mu.shape[<span class="op">-</span><span class="dv">1</span>])         <span class="co"># [bs, (n * d_depth), 1, d_inp]</span></span>
+<span id="cb24-57"><a href="#cb24-57"></a></span>
+<span id="cb24-58"><a href="#cb24-58"></a>        <span class="cf">for</span> routing <span class="kw">in</span> <span class="va">self</span>.routings:</span>
+<span id="cb24-59"><a href="#cb24-59"></a>            a, mu, sig2 <span class="op">=</span> routing(a, mu)</span>
+<span id="cb24-60"><a href="#cb24-60"></a></span>
+<span id="cb24-61"><a href="#cb24-61"></a>        <span class="cf">return</span> a, mu, sig2</span></code></pre></div>
+<p>Here we create a number of helper objects and define some components of our model.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1"></a>model <span class="op">=</span> Classifier(d_depth<span class="op">=</span><span class="dv">4</span>, d_emb<span class="op">=</span><span class="dv">768</span>, d_inp<span class="op">=</span><span class="dv">64</span>, d_cap<span class="op">=</span><span class="dv">2</span>, n_parts<span class="op">=</span><span class="dv">64</span>, n_classes<span class="op">=</span><span class="dv">2</span>).cuda()</span>
+<span id="cb25-2"><a href="#cb25-2"></a>optimizer <span class="op">=</span> RAdam(model.parameters(), lr<span class="op">=</span><span class="fl">5e-4</span>)</span>
+<span id="cb25-3"><a href="#cb25-3"></a>pct_warmup <span class="op">=</span> <span class="fl">0.1</span></span>
+<span id="cb25-4"><a href="#cb25-4"></a>epochs <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb25-5"><a href="#cb25-5"></a>n_iters <span class="op">=</span> <span class="bu">len</span>(trn_ds) <span class="op">*</span> epochs</span>
+<span id="cb25-6"><a href="#cb25-6"></a>scheduler <span class="op">=</span> SingleCycleScheduler(</span>
+<span id="cb25-7"><a href="#cb25-7"></a>    optimizer, n_iters, frac<span class="op">=</span>pct_warmup, min_lr<span class="op">=</span><span class="fl">1e-5</span>)</span>
+<span id="cb25-8"><a href="#cb25-8"></a></span>
+<span id="cb25-9"><a href="#cb25-9"></a>n_classes <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb25-10"><a href="#cb25-10"></a>device <span class="op">=</span> <span class="st">&#39;cuda:0&#39;</span></span>
+<span id="cb25-11"><a href="#cb25-11"></a>mixup<span class="op">=</span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>)</span>
+<span id="cb25-12"><a href="#cb25-12"></a>mixup_dist <span class="op">=</span> torch.distributions.Beta(torch.tensor(mixup[<span class="dv">0</span>]), torch.tensor(mixup[<span class="dv">1</span>]))</span>
+<span id="cb25-13"><a href="#cb25-13"></a>onehot <span class="op">=</span> torch.eye(n_classes, device<span class="op">=</span>device)</span></code></pre></div>
+<p>Now we create the training and validating functions that we are normally use to:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1"></a></span>
+<span id="cb26-2"><a href="#cb26-2"></a><span class="kw">def</span> train(model, dataloader, optimizer):</span>
+<span id="cb26-3"><a href="#cb26-3"></a></span>
+<span id="cb26-4"><a href="#cb26-4"></a>    <span class="co"># capture time</span></span>
+<span id="cb26-5"><a href="#cb26-5"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb26-6"><a href="#cb26-6"></a></span>
+<span id="cb26-7"><a href="#cb26-7"></a>    <span class="co"># Perform one full pass over the training set.</span></span>
+<span id="cb26-8"><a href="#cb26-8"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb26-9"><a href="#cb26-9"></a>    <span class="bu">print</span>(<span class="st">&#39;======== Epoch </span><span class="sc">{:}</span><span class="st"> / </span><span class="sc">{:}</span><span class="st"> ========&#39;</span>.<span class="bu">format</span>(epoch <span class="op">+</span> <span class="dv">1</span>, epochs))</span>
+<span id="cb26-10"><a href="#cb26-10"></a>    <span class="bu">print</span>(<span class="st">&#39;Training...&#39;</span>)</span>
+<span id="cb26-11"><a href="#cb26-11"></a></span>
+<span id="cb26-12"><a href="#cb26-12"></a>    <span class="co"># reset total loss for epoch</span></span>
+<span id="cb26-13"><a href="#cb26-13"></a>    train_total_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-14"><a href="#cb26-14"></a>    total_train_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-15"><a href="#cb26-15"></a>    total_train_accuracy <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-16"><a href="#cb26-16"></a></span>
+<span id="cb26-17"><a href="#cb26-17"></a>    <span class="co"># put model into eval mode</span></span>
+<span id="cb26-18"><a href="#cb26-18"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb26-19"><a href="#cb26-19"></a></span>
+<span id="cb26-20"><a href="#cb26-20"></a>    <span class="co"># for each batch of training data...</span></span>
+<span id="cb26-21"><a href="#cb26-21"></a>    <span class="cf">for</span> step, batch <span class="kw">in</span> <span class="bu">enumerate</span>(dataloader):</span>
+<span id="cb26-22"><a href="#cb26-22"></a></span>
+<span id="cb26-23"><a href="#cb26-23"></a>        <span class="co"># progress update every 40 batches.</span></span>
+<span id="cb26-24"><a href="#cb26-24"></a>        <span class="cf">if</span> step <span class="op">%</span> <span class="dv">40</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> step <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb26-25"><a href="#cb26-25"></a></span>
+<span id="cb26-26"><a href="#cb26-26"></a>            <span class="co"># Report progress.</span></span>
+<span id="cb26-27"><a href="#cb26-27"></a>            <span class="bu">print</span>(<span class="st">&#39;  Batch {:&gt;5,}  of  {:&gt;5,}.&#39;</span>.<span class="bu">format</span>(step, <span class="bu">len</span>(dataloader)))</span>
+<span id="cb26-28"><a href="#cb26-28"></a></span>
+<span id="cb26-29"><a href="#cb26-29"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb26-30"><a href="#cb26-30"></a>        <span class="co">#</span></span>
+<span id="cb26-31"><a href="#cb26-31"></a>        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></span>
+<span id="cb26-32"><a href="#cb26-32"></a>        <span class="co"># the `to` method.</span></span>
+<span id="cb26-33"><a href="#cb26-33"></a>        <span class="co">#</span></span>
+<span id="cb26-34"><a href="#cb26-34"></a>        <span class="co"># `batch` contains three pytorch tensors:</span></span>
+<span id="cb26-35"><a href="#cb26-35"></a>        mask, embs, b_label <span class="op">=</span> batch.body[<span class="dv">0</span>], batch.body[<span class="dv">1</span>], batch.target</span>
+<span id="cb26-36"><a href="#cb26-36"></a></span>
+<span id="cb26-37"><a href="#cb26-37"></a>        <span class="co"># clear previously calculated gradients</span></span>
+<span id="cb26-38"><a href="#cb26-38"></a>        optimizer.zero_grad()</span>
+<span id="cb26-39"><a href="#cb26-39"></a></span>
+<span id="cb26-40"><a href="#cb26-40"></a>        target_probs <span class="op">=</span> onehot[b_label]</span>
+<span id="cb26-41"><a href="#cb26-41"></a>        <span class="co"># while training</span></span>
+<span id="cb26-42"><a href="#cb26-42"></a>        r <span class="op">=</span> mixup_dist.sample([<span class="bu">len</span>(mask)]).to(device<span class="op">=</span>device)</span>
+<span id="cb26-43"><a href="#cb26-43"></a>        idx <span class="op">=</span> torch.randperm(<span class="bu">len</span>(mask))</span>
+<span id="cb26-44"><a href="#cb26-44"></a>        mask <span class="op">=</span> mask.lerp(mask[idx], r[:, <span class="va">None</span>])</span>
+<span id="cb26-45"><a href="#cb26-45"></a>        embs <span class="op">=</span> embs.lerp(embs[idx], r[:, <span class="va">None</span>, <span class="va">None</span>, <span class="va">None</span>])</span>
+<span id="cb26-46"><a href="#cb26-46"></a>        target_probs <span class="op">=</span> target_probs.lerp(target_probs[idx], r[:, <span class="va">None</span>])</span>
+<span id="cb26-47"><a href="#cb26-47"></a></span>
+<span id="cb26-48"><a href="#cb26-48"></a>        <span class="co"># preds</span></span>
+<span id="cb26-49"><a href="#cb26-49"></a>        pred_scores, _, _ <span class="op">=</span> model(mask, embs)</span>
+<span id="cb26-50"><a href="#cb26-50"></a>        _, pred_ids <span class="op">=</span> pred_scores.<span class="bu">max</span>(<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb26-51"><a href="#cb26-51"></a>        accuracy <span class="op">=</span> (pred_ids <span class="op">==</span> b_label).<span class="bu">float</span>().mean()</span>
+<span id="cb26-52"><a href="#cb26-52"></a>        total_train_accuracy <span class="op">+=</span> accuracy.item()</span>
+<span id="cb26-53"><a href="#cb26-53"></a></span>
+<span id="cb26-54"><a href="#cb26-54"></a>        <span class="co"># for other metrics like f1</span></span>
+<span id="cb26-55"><a href="#cb26-55"></a>        predicted <span class="op">=</span> pred_ids.detach().cpu().numpy()</span>
+<span id="cb26-56"><a href="#cb26-56"></a>        y_true <span class="op">=</span> b_label.detach().cpu().numpy()</span>
+<span id="cb26-57"><a href="#cb26-57"></a>        total_train_f1 <span class="op">+=</span> f1_score(predicted, y_true, average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>, labels<span class="op">=</span>np.unique(predicted))</span>
+<span id="cb26-58"><a href="#cb26-58"></a></span>
+<span id="cb26-59"><a href="#cb26-59"></a>        <span class="co"># loss</span></span>
+<span id="cb26-60"><a href="#cb26-60"></a>        losses <span class="op">=</span> <span class="op">-</span>target_probs <span class="op">*</span> F.log_softmax(pred_scores, dim<span class="op">=-</span><span class="dv">1</span>)  <span class="co"># CE</span></span>
+<span id="cb26-61"><a href="#cb26-61"></a>        loss <span class="op">=</span> losses.<span class="bu">sum</span>(dim<span class="op">=-</span><span class="dv">1</span>).mean()  <span class="co"># sum of classes, mean of batch</span></span>
+<span id="cb26-62"><a href="#cb26-62"></a>        train_total_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb26-63"><a href="#cb26-63"></a></span>
+<span id="cb26-64"><a href="#cb26-64"></a>        <span class="co"># back prop</span></span>
+<span id="cb26-65"><a href="#cb26-65"></a>        loss.backward()</span>
+<span id="cb26-66"><a href="#cb26-66"></a></span>
+<span id="cb26-67"><a href="#cb26-67"></a>        <span class="co"># optim updates</span></span>
+<span id="cb26-68"><a href="#cb26-68"></a>        optimizer.step()</span>
+<span id="cb26-69"><a href="#cb26-69"></a>        scheduler.step()</span>
+<span id="cb26-70"><a href="#cb26-70"></a></span>
+<span id="cb26-71"><a href="#cb26-71"></a>    <span class="co"># calculate the average loss over all of the batches</span></span>
+<span id="cb26-72"><a href="#cb26-72"></a>    avg_train_loss <span class="op">=</span> train_total_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb26-73"><a href="#cb26-73"></a></span>
+<span id="cb26-74"><a href="#cb26-74"></a>    <span class="co"># calculate the average f1 over all of the batches</span></span>
+<span id="cb26-75"><a href="#cb26-75"></a>    avg_train_f1 <span class="op">=</span> total_train_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb26-76"><a href="#cb26-76"></a></span>
+<span id="cb26-77"><a href="#cb26-77"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb26-78"><a href="#cb26-78"></a>    training_stats.append(</span>
+<span id="cb26-79"><a href="#cb26-79"></a>        {</span>
+<span id="cb26-80"><a href="#cb26-80"></a>            <span class="st">&#39;Train Loss&#39;</span>: avg_train_loss,</span>
+<span id="cb26-81"><a href="#cb26-81"></a>            <span class="st">&#39;Train F1&#39;</span>: avg_train_f1,</span>
+<span id="cb26-82"><a href="#cb26-82"></a>        }</span>
+<span id="cb26-83"><a href="#cb26-83"></a>    )</span>
+<span id="cb26-84"><a href="#cb26-84"></a></span>
+<span id="cb26-85"><a href="#cb26-85"></a>    <span class="co"># training time end</span></span>
+<span id="cb26-86"><a href="#cb26-86"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb26-87"><a href="#cb26-87"></a></span>
+<span id="cb26-88"><a href="#cb26-88"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb26-89"><a href="#cb26-89"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb26-90"><a href="#cb26-90"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb26-91"><a href="#cb26-91"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | trn loss | trn f1 | trn time &quot;</span>)</span>
+<span id="cb26-92"><a href="#cb26-92"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb26-93"><a href="#cb26-93"></a></span>
+<span id="cb26-94"><a href="#cb26-94"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb26-95"><a href="#cb26-95"></a></span>
+<span id="cb26-96"><a href="#cb26-96"></a></span>
+<span id="cb26-97"><a href="#cb26-97"></a><span class="kw">def</span> validating(model, dataloader):</span>
+<span id="cb26-98"><a href="#cb26-98"></a></span>
+<span id="cb26-99"><a href="#cb26-99"></a>    <span class="co"># capture validation time</span></span>
+<span id="cb26-100"><a href="#cb26-100"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb26-101"><a href="#cb26-101"></a></span>
+<span id="cb26-102"><a href="#cb26-102"></a>    <span class="co"># After the completion of each training epoch, measure our performance on</span></span>
+<span id="cb26-103"><a href="#cb26-103"></a>    <span class="co"># our validation set.</span></span>
+<span id="cb26-104"><a href="#cb26-104"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb26-105"><a href="#cb26-105"></a>    <span class="bu">print</span>(<span class="st">&quot;Running Validation...&quot;</span>)</span>
+<span id="cb26-106"><a href="#cb26-106"></a></span>
+<span id="cb26-107"><a href="#cb26-107"></a>    <span class="co"># put the model in evaluation mode</span></span>
+<span id="cb26-108"><a href="#cb26-108"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb26-109"><a href="#cb26-109"></a></span>
+<span id="cb26-110"><a href="#cb26-110"></a>    <span class="co"># track variables</span></span>
+<span id="cb26-111"><a href="#cb26-111"></a>    total_valid_accuracy <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-112"><a href="#cb26-112"></a>    total_valid_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-113"><a href="#cb26-113"></a>    total_valid_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-114"><a href="#cb26-114"></a>    total_valid_recall <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-115"><a href="#cb26-115"></a>    total_valid_precision <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-116"><a href="#cb26-116"></a></span>
+<span id="cb26-117"><a href="#cb26-117"></a>    <span class="co"># evaluate data for one epoch</span></span>
+<span id="cb26-118"><a href="#cb26-118"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
+<span id="cb26-119"><a href="#cb26-119"></a></span>
+<span id="cb26-120"><a href="#cb26-120"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb26-121"><a href="#cb26-121"></a>        <span class="co"># `batch` contains three pytorch tensors:</span></span>
+<span id="cb26-122"><a href="#cb26-122"></a>        <span class="co">#   [0]: input ids</span></span>
+<span id="cb26-123"><a href="#cb26-123"></a>        <span class="co">#   [1]: attention masks</span></span>
+<span id="cb26-124"><a href="#cb26-124"></a>        <span class="co">#   [2]: labels</span></span>
+<span id="cb26-125"><a href="#cb26-125"></a>        mask, embs, b_label <span class="op">=</span> batch.body[<span class="dv">0</span>], batch.body[<span class="dv">1</span>], batch.target</span>
+<span id="cb26-126"><a href="#cb26-126"></a></span>
+<span id="cb26-127"><a href="#cb26-127"></a>        <span class="co"># clear previously calculated gradients</span></span>
+<span id="cb26-128"><a href="#cb26-128"></a>        optimizer.zero_grad()</span>
+<span id="cb26-129"><a href="#cb26-129"></a></span>
+<span id="cb26-130"><a href="#cb26-130"></a>        target_probs <span class="op">=</span> onehot[b_label]</span>
+<span id="cb26-131"><a href="#cb26-131"></a>        <span class="co"># preds</span></span>
+<span id="cb26-132"><a href="#cb26-132"></a>        pred_scores, _, _ <span class="op">=</span> model(mask, embs)</span>
+<span id="cb26-133"><a href="#cb26-133"></a>        _, pred_ids <span class="op">=</span> pred_scores.<span class="bu">max</span>(<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb26-134"><a href="#cb26-134"></a>        accuracy <span class="op">=</span> (pred_ids <span class="op">==</span> b_label).<span class="bu">float</span>().mean()</span>
+<span id="cb26-135"><a href="#cb26-135"></a>        total_valid_accuracy <span class="op">+=</span> accuracy.item()</span>
+<span id="cb26-136"><a href="#cb26-136"></a></span>
+<span id="cb26-137"><a href="#cb26-137"></a>        <span class="co"># for other metrics like f1</span></span>
+<span id="cb26-138"><a href="#cb26-138"></a>        predicted <span class="op">=</span> pred_ids.detach().cpu().numpy()</span>
+<span id="cb26-139"><a href="#cb26-139"></a>        y_true <span class="op">=</span> b_label.detach().cpu().numpy()</span>
+<span id="cb26-140"><a href="#cb26-140"></a>        total_valid_f1 <span class="op">+=</span> f1_score(predicted, y_true, average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>, labels<span class="op">=</span>np.unique(predicted))</span>
+<span id="cb26-141"><a href="#cb26-141"></a></span>
+<span id="cb26-142"><a href="#cb26-142"></a>        <span class="co"># loss</span></span>
+<span id="cb26-143"><a href="#cb26-143"></a>        losses <span class="op">=</span> <span class="op">-</span>target_probs <span class="op">*</span> F.log_softmax(pred_scores, dim<span class="op">=-</span><span class="dv">1</span>)  <span class="co"># CE</span></span>
+<span id="cb26-144"><a href="#cb26-144"></a>        loss <span class="op">=</span> losses.<span class="bu">sum</span>(dim<span class="op">=-</span><span class="dv">1</span>).mean()  <span class="co"># sum of classes, mean of batch</span></span>
+<span id="cb26-145"><a href="#cb26-145"></a>        total_valid_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb26-146"><a href="#cb26-146"></a></span>
+<span id="cb26-147"><a href="#cb26-147"></a>        <span class="co"># back prop</span></span>
+<span id="cb26-148"><a href="#cb26-148"></a>        loss.backward()</span>
+<span id="cb26-149"><a href="#cb26-149"></a></span>
+<span id="cb26-150"><a href="#cb26-150"></a>        <span class="co"># optim updates</span></span>
+<span id="cb26-151"><a href="#cb26-151"></a>        optimizer.step()</span>
+<span id="cb26-152"><a href="#cb26-152"></a>        scheduler.step()</span>
+<span id="cb26-153"><a href="#cb26-153"></a></span>
+<span id="cb26-154"><a href="#cb26-154"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb26-155"><a href="#cb26-155"></a>    <span class="kw">global</span> avg_val_f1</span>
+<span id="cb26-156"><a href="#cb26-156"></a>    avg_val_f1 <span class="op">=</span> total_valid_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb26-157"><a href="#cb26-157"></a></span>
+<span id="cb26-158"><a href="#cb26-158"></a>    avg_val_acc <span class="op">=</span> total_valid_accuracy <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb26-159"><a href="#cb26-159"></a></span>
+<span id="cb26-160"><a href="#cb26-160"></a>    <span class="co"># calculate the average loss over all of the batches.</span></span>
+<span id="cb26-161"><a href="#cb26-161"></a>    <span class="kw">global</span> avg_val_loss</span>
+<span id="cb26-162"><a href="#cb26-162"></a>    avg_val_loss <span class="op">=</span> total_valid_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb26-163"><a href="#cb26-163"></a></span>
+<span id="cb26-164"><a href="#cb26-164"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb26-165"><a href="#cb26-165"></a>    valid_stats.append(</span>
+<span id="cb26-166"><a href="#cb26-166"></a>        {</span>
+<span id="cb26-167"><a href="#cb26-167"></a>            <span class="st">&#39;Val Loss&#39;</span>: avg_val_loss,</span>
+<span id="cb26-168"><a href="#cb26-168"></a>            <span class="st">&#39;Val F1&#39;</span>: avg_val_f1,</span>
+<span id="cb26-169"><a href="#cb26-169"></a>            <span class="st">&#39;Val Acc&#39;</span>: avg_val_acc</span>
+<span id="cb26-170"><a href="#cb26-170"></a>        }</span>
+<span id="cb26-171"><a href="#cb26-171"></a>    )</span>
+<span id="cb26-172"><a href="#cb26-172"></a></span>
+<span id="cb26-173"><a href="#cb26-173"></a>    <span class="co"># capture end validation time</span></span>
+<span id="cb26-174"><a href="#cb26-174"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb26-175"><a href="#cb26-175"></a></span>
+<span id="cb26-176"><a href="#cb26-176"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb26-177"><a href="#cb26-177"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb26-178"><a href="#cb26-178"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb26-179"><a href="#cb26-179"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | val loss | val f1 | val acc | val time&quot;</span>)</span>
+<span id="cb26-180"><a href="#cb26-180"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_acc<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb26-181"><a href="#cb26-181"></a></span>
+<span id="cb26-182"><a href="#cb26-182"></a>    <span class="cf">return</span> <span class="va">None</span></span></code></pre></div>
+<p>Now we are ready to train our model like usual:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a><span class="co"># create training result storage</span></span>
+<span id="cb27-2"><a href="#cb27-2"></a>training_stats <span class="op">=</span> []</span>
+<span id="cb27-3"><a href="#cb27-3"></a>valid_stats <span class="op">=</span> []</span>
+<span id="cb27-4"><a href="#cb27-4"></a>best_valid_loss <span class="op">=</span> <span class="bu">float</span>(<span class="st">&#39;inf&#39;</span>)</span>
+<span id="cb27-5"><a href="#cb27-5"></a></span>
+<span id="cb27-6"><a href="#cb27-6"></a><span class="co"># this way does not erally learn</span></span>
+<span id="cb27-7"><a href="#cb27-7"></a><span class="co"># for each epoch</span></span>
+<span id="cb27-8"><a href="#cb27-8"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(epochs):</span>
+<span id="cb27-9"><a href="#cb27-9"></a>    <span class="co"># train</span></span>
+<span id="cb27-10"><a href="#cb27-10"></a>    train(model, trn_itr, optimizer)</span>
+<span id="cb27-11"><a href="#cb27-11"></a>    <span class="co"># validate</span></span>
+<span id="cb27-12"><a href="#cb27-12"></a>    validating(model, val_itr)</span>
+<span id="cb27-13"><a href="#cb27-13"></a>    <span class="co"># check validation loss</span></span>
+<span id="cb27-14"><a href="#cb27-14"></a>    <span class="cf">if</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>] <span class="op">&lt;</span> best_valid_loss:</span>
+<span id="cb27-15"><a href="#cb27-15"></a>        best_valid_loss <span class="op">=</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>]</span>
+<span id="cb27-16"><a href="#cb27-16"></a>        <span class="co"># save best model for use later</span></span>
+<span id="cb27-17"><a href="#cb27-17"></a>        torch.save(model.state_dict(), <span class="st">&#39;capsule.pt&#39;</span>)  <span class="co"># torch save</span></span></code></pre></div>
+<pre><code>## 
+## ======== Epoch 1 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     1 | 0.61927 | 0.86271 | 0:02:36
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     1 | 0.46190 | 0.85021 | 0.84799 | 0:00:19
+## 
+## ======== Epoch 2 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     2 | 0.40832 | 0.75271 | 0:02:37
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     2 | 0.33557 | 0.85407 | 0.85813 | 0:00:19
+## 
+## ======== Epoch 3 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     3 | 0.36979 | 0.76459 | 0:02:34
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     3 | 0.29335 | 0.86133 | 0.86661 | 0:00:19
+## 
+## ======== Epoch 4 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     4 | 0.33601 | 0.77750 | 0:02:36
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     4 | 0.26079 | 0.88146 | 0.88172 | 0:00:19
+## 
+## ======== Epoch 5 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     5 | 0.32224 | 0.77533 | 0:02:36
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     5 | 0.24953 | 0.87180 | 0.87157 | 0:00:20
+## 
+## C:\Users\Andrew\Desktop\heinsen_routing\pytorch_extras.py:83: UserWarning: This overload of addcmul_ is deprecated:
+##  addcmul_(Number value, Tensor tensor1, Tensor tensor2)
+## Consider using one of the following signatures instead:
+##  addcmul_(Tensor tensor1, Tensor tensor2, *, Number value) (Triggered internally at  ..\torch\csrc\utils\python_arg_parser.cpp:766.)
+##   exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
+## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\metrics\classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
+##   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)</code></pre>
+<p>And test our model like usual:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1"></a>test_stats <span class="op">=</span> []</span>
+<span id="cb29-2"><a href="#cb29-2"></a>model.load_state_dict(torch.load(<span class="st">&#39;capsule.pt&#39;</span>))</span></code></pre></div>
+<pre><code>## &lt;All keys matched successfully&gt;</code></pre>
+<div class="sourceCode" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1"></a>validating(model, tst_itr)</span></code></pre></div>
+<pre><code>## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val acc | val time
+##     5 | 0.27582 | 0.88692 | 0.88393 | 0:00:19</code></pre>
+</div>
+<div id="sources" class="section level1" number="7">
+<h1 number="7"><span class="header-section-number">7</span> Sources</h1>
+<p>Hinton, Geoffrey E., Sara Sabour, and Nicholas Frosst. “Matrix capsules with EM routing.” In International conference on learning representations. 2018.</p>
+<p>Heinsen, Franz A. “An Algorithm for Routing Capsules in All Domains.” arXiv preprint arXiv:1911.00792 (2019).</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
