@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Andrew Fogarty" />
+
+
+<title>Entity Embeddings</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Entity Embeddings</h1>
+<h4 class="author">Andrew Fogarty</h4>
+<h4 class="date">9/23/2020</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#entity-embeddings-with-nn.embedding"><span class="toc-section-number">2</span> Entity Embeddings with nn.Embedding()</a>
+<ul>
+<li><a href="#torch-data-set-class"><span class="toc-section-number">2.1</span> Torch Data Set Class</a></li>
+<li><a href="#torch-data-set-transforms"><span class="toc-section-number">2.2</span> Torch Data Set Transforms</a></li>
+<li><a href="#load-torch-data-sets"><span class="toc-section-number">2.3</span> Load Torch Data Sets</a></li>
+<li><a href="#prepare-custom-model-to-accept-categorical-embeddings"><span class="toc-section-number">2.4</span> Prepare Custom Model to Accept Categorical Embeddings</a></li>
+<li><a href="#weighted-random-sampler"><span class="toc-section-number">2.5</span> Weighted Random Sampler</a></li>
+<li><a href="#training-functions"><span class="toc-section-number">2.6</span> Training Functions</a></li>
+<li><a href="#preparing-to-train"><span class="toc-section-number">2.7</span> Preparing to Train</a></li>
+<li><a href="#training"><span class="toc-section-number">2.8</span> Training</a></li>
+</ul></li>
+<li><a href="#transformer-derived-categorical-embeddings"><span class="toc-section-number">3</span> Transformer-derived Categorical Embeddings</a></li>
+</ul>
+</div>
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># load python</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">library</span>(reticulate)</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="kw">use_condaenv</span>(<span class="st">&quot;my_ml&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># Transformers</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="im">import</span> torch</span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="im">from</span> transformers <span class="im">import</span> DistilBertForSequenceClassification, DistilBertTokenizer</span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="im">from</span> transformers <span class="im">import</span> get_linear_schedule_with_warmup, AdamW</span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler</span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="im">import</span> time</span>
+<span id="cb2-8"><a href="#cb2-8"></a><span class="im">import</span> datetime</span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="im">import</span> random</span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-11"><a href="#cb2-11"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> accuracy_score, f1_score, precision_score, recall_score</span>
+<span id="cb2-13"><a href="#cb2-13"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-14"><a href="#cb2-14"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb2-15"><a href="#cb2-15"></a><span class="im">import</span> re, os</span>
+<span id="cb2-16"><a href="#cb2-16"></a><span class="im">from</span> torch.cuda.amp <span class="im">import</span> autocast, GradScaler</span>
+<span id="cb2-17"><a href="#cb2-17"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb2-18"><a href="#cb2-18"></a><span class="im">from</span> collections <span class="im">import</span> Counter</span>
+<span id="cb2-19"><a href="#cb2-19"></a><span class="im">from</span> transformers <span class="im">import</span> BertModel, BertTokenizer, BertForSequenceClassification, DistilBertModel</span>
+<span id="cb2-20"><a href="#cb2-20"></a><span class="im">import</span> string</span>
+<span id="cb2-21"><a href="#cb2-21"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> Dataset, Subset</span>
+<span id="cb2-22"><a href="#cb2-22"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
+<span id="cb2-23"><a href="#cb2-23"></a><span class="im">from</span> torchvision <span class="im">import</span> transforms</span>
+<span id="cb2-24"><a href="#cb2-24"></a></span>
+<span id="cb2-25"><a href="#cb2-25"></a>SEED <span class="op">=</span> <span class="dv">15</span></span>
+<span id="cb2-26"><a href="#cb2-26"></a>random.seed(SEED)</span>
+<span id="cb2-27"><a href="#cb2-27"></a>np.random.seed(SEED)</span>
+<span id="cb2-28"><a href="#cb2-28"></a>torch.manual_seed(SEED)</span></code></pre></div>
+<pre><code>## &lt;torch._C.Generator object at 0x000000001F72E070&gt;</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>torch.cuda.amp.autocast(enabled<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co"># tell pytorch to use cuda</span></span></code></pre></div>
+<pre><code>## &lt;torch.cuda.amp.autocast_mode.autocast object at 0x00000000338B53C8&gt;</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>device <span class="op">=</span> torch.device(<span class="st">&quot;cuda&quot;</span>)</span></code></pre></div>
+<div id="introduction" class="section level1" number="1">
+<h1 number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>In this guide, we will implement entity embeddings in two ways via PyTorch: (1) via <code>nn.Embedding()</code>, and (2) via transformers. We will also show how to load data in a more efficient manner through a custom PyTorch data set class. This style of data management is slightly more complicated to initialize, but is the precise way we want to load our data when dealing: (1) big data, or (2) a memory-conservative environment. Frankly, it is the way we should always load our data, but when learning PyTorch – there are of course other things to learn first besides interesting efficiencies.</p>
+<p>Entity embeddings refers to the idea of transforming categorical variables into continuous embeddings to avoid one-hot encoding and sparse matrices. Embeddings, as we know, represent words as continuous vectors in a low dimensional space which capture lexical and semantic properties of words. Embeddings can be obtained from the internal representations from neural network models of text or by low rank approximation of co-occurrence statistics.</p>
+</div>
+<div id="entity-embeddings-with-nn.embedding" class="section level1" number="2">
+<h1 number="2"><span class="header-section-number">2</span> Entity Embeddings with nn.Embedding()</h1>
+<p>In this section, categorical embeddings via <code>nn.Embedding()</code> are incorporated into our transformer model. In the next section, we will use transformers to handle both.</p>
+<div id="torch-data-set-class" class="section level2" number="2.1">
+<h2 number="2.1"><span class="header-section-number">2.1</span> Torch Data Set Class</h2>
+<p>We begin by creating our custom data set. What this does is it exemplifies lazy loading which means that PyTorch will only pull observations it needs and will do so on the fly while other computations are ongoing. Since this is the ideal way of loading and preparing data, let’s go over a few things. Tabling the embeddings for a moment, this class pulls one row of data from the specified CSV file at a time via the <code>__getitem__()</code> function. However, this class is a bit more complicated because it also uses <code>nn.Embedding()</code> to create continuous representations for the categorical variables in the data set. This happens over the course of multiple steps. First, the categorical data is encoded from string to numeric. Second, the categorical columns are scanned for the amount of different categories they have and then embeddings are made for each column. Lastly, the categorical data is injected into the embeddings and finally sent to dict for use later.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># Create Dataset</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="kw">class</span> CSVDataset(Dataset):</span>
+<span id="cb7-3"><a href="#cb7-3"></a>    <span class="co">&quot;&quot;&quot;Propaganda data set.&quot;&quot;&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a></span>
+<span id="cb7-5"><a href="#cb7-5"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, csv_file, text_col, cat_cols, target, transform<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb7-6"><a href="#cb7-6"></a>        <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">        Args:</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="co">            csv_file (string): Path to the csv file with annotations.</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="co">            text_col (string): column containing the text for analysis.</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co">            cat_cols (string): column(s) containing string categorical data.</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="co">            target (string): column containing the dependent variable.</span></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="co">            transform (callable, optional): Optional transform to be applied</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="co">                on a sample.</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="co">        &quot;&quot;&quot;</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a>        <span class="co"># initialize</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a>        <span class="va">self</span>.data_frame <span class="op">=</span> pd.read_csv(csv_file)</span>
+<span id="cb7-17"><a href="#cb7-17"></a>        <span class="va">self</span>.categorical_features <span class="op">=</span> cat_cols</span>
+<span id="cb7-18"><a href="#cb7-18"></a>        <span class="va">self</span>.text_features <span class="op">=</span> text_col</span>
+<span id="cb7-19"><a href="#cb7-19"></a>        <span class="va">self</span>.target <span class="op">=</span> target</span>
+<span id="cb7-20"><a href="#cb7-20"></a>        <span class="va">self</span>.transform <span class="op">=</span> transform</span>
+<span id="cb7-21"><a href="#cb7-21"></a></span>
+<span id="cb7-22"><a href="#cb7-22"></a>        <span class="co"># encode categorical variables</span></span>
+<span id="cb7-23"><a href="#cb7-23"></a>        label_encoders <span class="op">=</span> {}</span>
+<span id="cb7-24"><a href="#cb7-24"></a>        <span class="cf">for</span> cat_col <span class="kw">in</span> <span class="va">self</span>.categorical_features:</span>
+<span id="cb7-25"><a href="#cb7-25"></a>            label_encoders[cat_col] <span class="op">=</span> LabelEncoder()</span>
+<span id="cb7-26"><a href="#cb7-26"></a>            <span class="va">self</span>.data_frame[cat_col] <span class="op">=</span> label_encoders[cat_col].fit_transform(<span class="va">self</span>.data_frame[cat_col])</span>
+<span id="cb7-27"><a href="#cb7-27"></a></span>
+<span id="cb7-28"><a href="#cb7-28"></a>        <span class="co"># encode outcome</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a>        <span class="va">self</span>.data_frame[target] <span class="op">=</span> LabelEncoder().fit_transform(<span class="va">self</span>.data_frame[target])</span>
+<span id="cb7-30"><a href="#cb7-30"></a></span>
+<span id="cb7-31"><a href="#cb7-31"></a>        <span class="co"># embedding info</span></span>
+<span id="cb7-32"><a href="#cb7-32"></a>        <span class="va">self</span>.cat_dims <span class="op">=</span> [<span class="bu">int</span>(<span class="va">self</span>.data_frame[col].nunique()) <span class="cf">for</span> col <span class="kw">in</span> <span class="va">self</span>.categorical_features]</span>
+<span id="cb7-33"><a href="#cb7-33"></a>        <span class="va">self</span>.emb_dims <span class="op">=</span> [(x, <span class="bu">min</span>(<span class="dv">50</span>, (x <span class="op">+</span> <span class="dv">1</span>) <span class="op">//</span> <span class="dv">2</span>)) <span class="cf">for</span> x <span class="kw">in</span> <span class="va">self</span>.cat_dims]</span>
+<span id="cb7-34"><a href="#cb7-34"></a>        <span class="va">self</span>.all_embeddings <span class="op">=</span> nn.ModuleList([nn.Embedding(ni, nf) <span class="cf">for</span> ni, nf <span class="kw">in</span> <span class="va">self</span>.emb_dims])</span>
+<span id="cb7-35"><a href="#cb7-35"></a></span>
+<span id="cb7-36"><a href="#cb7-36"></a>        <span class="co"># get length of df</span></span>
+<span id="cb7-37"><a href="#cb7-37"></a>    <span class="kw">def</span> <span class="fu">__len__</span>(<span class="va">self</span>):</span>
+<span id="cb7-38"><a href="#cb7-38"></a>        <span class="cf">return</span> <span class="bu">len</span>(<span class="va">self</span>.data_frame)</span>
+<span id="cb7-39"><a href="#cb7-39"></a></span>
+<span id="cb7-40"><a href="#cb7-40"></a>        <span class="co"># get target</span></span>
+<span id="cb7-41"><a href="#cb7-41"></a>    <span class="kw">def</span> __get_target__(<span class="va">self</span>):</span>
+<span id="cb7-42"><a href="#cb7-42"></a>        <span class="cf">return</span> <span class="va">self</span>.data_frame.target</span>
+<span id="cb7-43"><a href="#cb7-43"></a></span>
+<span id="cb7-44"><a href="#cb7-44"></a>        <span class="co"># get df filtered by indices</span></span>
+<span id="cb7-45"><a href="#cb7-45"></a>    <span class="kw">def</span> __get_values__(<span class="va">self</span>, indices):</span>
+<span id="cb7-46"><a href="#cb7-46"></a>        <span class="cf">return</span> <span class="va">self</span>.data_frame.iloc[indices]</span>
+<span id="cb7-47"><a href="#cb7-47"></a></span>
+<span id="cb7-48"><a href="#cb7-48"></a>    <span class="kw">def</span> <span class="fu">__getitem__</span>(<span class="va">self</span>, idx):</span>
+<span id="cb7-49"><a href="#cb7-49"></a>        <span class="cf">if</span> torch.is_tensor(idx):</span>
+<span id="cb7-50"><a href="#cb7-50"></a>            idx <span class="op">=</span> idx.tolist()</span>
+<span id="cb7-51"><a href="#cb7-51"></a></span>
+<span id="cb7-52"><a href="#cb7-52"></a>        <span class="co"># pull a sample of data</span></span>
+<span id="cb7-53"><a href="#cb7-53"></a>        text <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.text_features]</span>
+<span id="cb7-54"><a href="#cb7-54"></a>        cats <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.categorical_features]</span>
+<span id="cb7-55"><a href="#cb7-55"></a>        cats <span class="op">=</span> torch.tensor(cats).<span class="bu">long</span>()</span>
+<span id="cb7-56"><a href="#cb7-56"></a>        target <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.target]</span>
+<span id="cb7-57"><a href="#cb7-57"></a></span>
+<span id="cb7-58"><a href="#cb7-58"></a>        <span class="co"># create embeddings</span></span>
+<span id="cb7-59"><a href="#cb7-59"></a>        <span class="va">self</span>.embeddings <span class="op">=</span> []</span>
+<span id="cb7-60"><a href="#cb7-60"></a>        <span class="cf">for</span> i, emb <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="va">self</span>.all_embeddings):</span>
+<span id="cb7-61"><a href="#cb7-61"></a>            <span class="va">self</span>.embeddings.append(emb(cats[i]))</span>
+<span id="cb7-62"><a href="#cb7-62"></a>        <span class="va">self</span>.embeddings <span class="op">=</span> torch.cat(<span class="va">self</span>.embeddings, <span class="dv">0</span>)</span>
+<span id="cb7-63"><a href="#cb7-63"></a></span>
+<span id="cb7-64"><a href="#cb7-64"></a>        <span class="co"># hold sample in a dict</span></span>
+<span id="cb7-65"><a href="#cb7-65"></a>        sample <span class="op">=</span> {<span class="st">&#39;text&#39;</span>: text,</span>
+<span id="cb7-66"><a href="#cb7-66"></a>                  <span class="st">&#39;cats&#39;</span>: <span class="va">self</span>.embeddings,</span>
+<span id="cb7-67"><a href="#cb7-67"></a>                  <span class="st">&#39;target&#39;</span>: target,</span>
+<span id="cb7-68"><a href="#cb7-68"></a>                  <span class="st">&#39;idx&#39;</span>: torch.tensor(idx)}</span>
+<span id="cb7-69"><a href="#cb7-69"></a></span>
+<span id="cb7-70"><a href="#cb7-70"></a>        <span class="cf">if</span> <span class="va">self</span>.transform:</span>
+<span id="cb7-71"><a href="#cb7-71"></a>            sample <span class="op">=</span> <span class="va">self</span>.transform(sample)</span>
+<span id="cb7-72"><a href="#cb7-72"></a></span>
+<span id="cb7-73"><a href="#cb7-73"></a>        <span class="cf">return</span> sample</span></code></pre></div>
+</div>
+<div id="torch-data-set-transforms" class="section level2" number="2.2">
+<h2 number="2.2"><span class="header-section-number">2.2</span> Torch Data Set Transforms</h2>
+<p>Next, a separate class is prepared to handle tokenization on the fly. It receives the dictionary from the class above, unpacks it, and sends the text through the usual tokenization process provided by <code>huggingface</code> via <code>tokenizer.encode_plus()</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">class</span> Tokenize_Transform():</span>
+<span id="cb8-2"><a href="#cb8-2"></a></span>
+<span id="cb8-3"><a href="#cb8-3"></a>    <span class="co"># retrieve sample and unpack it</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a>    <span class="kw">def</span> <span class="fu">__call__</span>(<span class="va">self</span>, sample):</span>
+<span id="cb8-5"><a href="#cb8-5"></a>        text, cats, target, idx <span class="op">=</span> (sample[<span class="st">&#39;text&#39;</span>][<span class="st">&#39;body&#39;</span>],</span>
+<span id="cb8-6"><a href="#cb8-6"></a>                              sample[<span class="st">&#39;cats&#39;</span>],</span>
+<span id="cb8-7"><a href="#cb8-7"></a>                              sample[<span class="st">&#39;target&#39;</span>].values.astype(np.int64),</span>
+<span id="cb8-8"><a href="#cb8-8"></a>                              sample[<span class="st">&#39;idx&#39;</span>])</span>
+<span id="cb8-9"><a href="#cb8-9"></a></span>
+<span id="cb8-10"><a href="#cb8-10"></a>        <span class="co"># transform text to input ids and attn masks</span></span>
+<span id="cb8-11"><a href="#cb8-11"></a>        tokenizer_output <span class="op">=</span> tokenizer.encode_plus(</span>
+<span id="cb8-12"><a href="#cb8-12"></a>                            text,  <span class="co"># document to encode.</span></span>
+<span id="cb8-13"><a href="#cb8-13"></a>                            add_special_tokens<span class="op">=</span><span class="va">True</span>,  <span class="co"># add &#39;[CLS]&#39; and &#39;[SEP]&#39;</span></span>
+<span id="cb8-14"><a href="#cb8-14"></a>                            max_length<span class="op">=</span><span class="dv">512</span>,  <span class="co"># set max length</span></span>
+<span id="cb8-15"><a href="#cb8-15"></a>                            truncation<span class="op">=</span><span class="va">True</span>,  <span class="co"># truncate longer messages</span></span>
+<span id="cb8-16"><a href="#cb8-16"></a>                            pad_to_max_length<span class="op">=</span><span class="va">True</span>,  <span class="co"># add padding</span></span>
+<span id="cb8-17"><a href="#cb8-17"></a>                            return_attention_mask<span class="op">=</span><span class="va">True</span>,  <span class="co"># create attn. masks</span></span>
+<span id="cb8-18"><a href="#cb8-18"></a>                            return_tensors<span class="op">=</span><span class="st">&#39;pt&#39;</span>  <span class="co"># return pytorch tensors</span></span>
+<span id="cb8-19"><a href="#cb8-19"></a>                       )</span>
+<span id="cb8-20"><a href="#cb8-20"></a>        input_ids, attn_mask <span class="op">=</span> tokenizer_output[<span class="st">&#39;input_ids&#39;</span>], tokenizer_output[<span class="st">&#39;attention_mask&#39;</span>]</span>
+<span id="cb8-21"><a href="#cb8-21"></a></span>
+<span id="cb8-22"><a href="#cb8-22"></a>        <span class="co"># yield another dict</span></span>
+<span id="cb8-23"><a href="#cb8-23"></a>        <span class="cf">return</span> {<span class="st">&#39;input_ids&#39;</span>: input_ids,</span>
+<span id="cb8-24"><a href="#cb8-24"></a>                <span class="st">&#39;attn_mask&#39;</span>: attn_mask,</span>
+<span id="cb8-25"><a href="#cb8-25"></a>                <span class="st">&#39;cats&#39;</span>: cats,</span>
+<span id="cb8-26"><a href="#cb8-26"></a>                <span class="st">&#39;target&#39;</span>: torch.from_numpy(target),</span>
+<span id="cb8-27"><a href="#cb8-27"></a>                <span class="st">&#39;idx&#39;</span>: idx}</span></code></pre></div>
+</div>
+<div id="load-torch-data-sets" class="section level2" number="2.3">
+<h2 number="2.3"><span class="header-section-number">2.3</span> Load Torch Data Sets</h2>
+<p>Now we are ready to instantiate our data sets and split them into train, valid, and test sets.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># load the tokenizer</span></span>
+<span id="cb9-2"><a href="#cb9-2"></a>tokenizer <span class="op">=</span> DistilBertTokenizer.from_pretrained(<span class="st">&#39;distilbert-base-uncased&#39;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3"></a></span>
+<span id="cb9-4"><a href="#cb9-4"></a><span class="co"># instantiate the lazy data set</span></span>
+<span id="cb9-5"><a href="#cb9-5"></a>csv_dataset <span class="op">=</span> CSVDataset(csv_file<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">test_export.csv&#39;</span>,</span>
+<span id="cb9-6"><a href="#cb9-6"></a>                         text_col<span class="op">=</span>[<span class="st">&#39;body&#39;</span>],</span>
+<span id="cb9-7"><a href="#cb9-7"></a>                         cat_cols<span class="op">=</span>[<span class="st">&quot;sas_active&quot;</span>, <span class="st">&quot;peace_talks_active&quot;</span>, <span class="st">&quot;isisk_active&quot;</span>, <span class="st">&quot;administration&quot;</span>],</span>
+<span id="cb9-8"><a href="#cb9-8"></a>                         target<span class="op">=</span>[<span class="st">&#39;target&#39;</span>],</span>
+<span id="cb9-9"><a href="#cb9-9"></a>                         transform<span class="op">=</span>Tokenize_Transform())</span>
+<span id="cb9-10"><a href="#cb9-10"></a></span>
+<span id="cb9-11"><a href="#cb9-11"></a><span class="co"># set train, valid, and test size</span></span></code></pre></div>
+<pre><code>## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\preprocessing\label.py:235: DataConversionWarning: A column-vector y was passed when a 1d array was expected. Please change the shape of y to (n_samples, ), for example using ravel().
+##   y = column_or_1d(y, warn=True)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>train_size <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.8</span> <span class="op">*</span> <span class="bu">len</span>(csv_dataset))</span>
+<span id="cb11-2"><a href="#cb11-2"></a>valid_size <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.1</span> <span class="op">*</span> <span class="bu">len</span>(csv_dataset))</span>
+<span id="cb11-3"><a href="#cb11-3"></a></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="co"># use random split to create three data sets; +1 for odd number of data</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a>train_ds, valid_ds, test_ds <span class="op">=</span> torch.utils.data.random_split(csv_dataset, [train_size, valid_size, valid_size<span class="op">+</span><span class="dv">1</span>])</span></code></pre></div>
+</div>
+<div id="prepare-custom-model-to-accept-categorical-embeddings" class="section level2" number="2.4">
+<h2 number="2.4"><span class="header-section-number">2.4</span> Prepare Custom Model to Accept Categorical Embeddings</h2>
+<p>Then, we create a custom transformer class that allows us to concat the custom categorical embeddings with the transformer-derived embeddings.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># create custom transformer that concats the text and categorical embeddings</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="kw">class</span> DistillBERT_FE(torch.nn.Module):</span>
+<span id="cb12-3"><a href="#cb12-3"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb12-4"><a href="#cb12-4"></a>        <span class="bu">super</span>(DistillBERT_FE, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
+<span id="cb12-5"><a href="#cb12-5"></a>        <span class="co"># load model</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a>        <span class="va">self</span>.l1 <span class="op">=</span> DistilBertModel.from_pretrained(<span class="st">&quot;distilbert-base-uncased&quot;</span>)</span>
+<span id="cb12-7"><a href="#cb12-7"></a>        <span class="co"># pre-classifier layer</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a>        <span class="va">self</span>.pre_classifier <span class="op">=</span> torch.nn.Linear(<span class="dv">772</span>, <span class="dv">772</span>)  <span class="co"># 4 embed dim + 768</span></span>
+<span id="cb12-9"><a href="#cb12-9"></a>        <span class="co"># drop out</span></span>
+<span id="cb12-10"><a href="#cb12-10"></a>        <span class="va">self</span>.dropout <span class="op">=</span> torch.nn.Dropout(<span class="fl">0.3</span>)</span>
+<span id="cb12-11"><a href="#cb12-11"></a>        <span class="co"># final classification layer</span></span>
+<span id="cb12-12"><a href="#cb12-12"></a>        <span class="va">self</span>.classifier <span class="op">=</span> torch.nn.Linear(<span class="dv">772</span>, <span class="dv">2</span>)  <span class="co"># 4 embed dim + 768</span></span>
+<span id="cb12-13"><a href="#cb12-13"></a></span>
+<span id="cb12-14"><a href="#cb12-14"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, input_ids, attention_mask):</span>
+<span id="cb12-15"><a href="#cb12-15"></a>        <span class="co"># generate outputs from BERT</span></span>
+<span id="cb12-16"><a href="#cb12-16"></a>        output_1 <span class="op">=</span> <span class="va">self</span>.l1(input_ids<span class="op">=</span>input_ids, attention_mask<span class="op">=</span>attention_mask)</span>
+<span id="cb12-17"><a href="#cb12-17"></a>        hidden_state <span class="op">=</span> output_1[<span class="dv">0</span>]  <span class="co"># last hidden layer</span></span>
+<span id="cb12-18"><a href="#cb12-18"></a>        pooled_output <span class="op">=</span> hidden_state[:, <span class="dv">0</span>]  <span class="co"># just the cls token</span></span>
+<span id="cb12-19"><a href="#cb12-19"></a></span>
+<span id="cb12-20"><a href="#cb12-20"></a>        <span class="co"># cat transformer embeddings with entity embeddings</span></span>
+<span id="cb12-21"><a href="#cb12-21"></a>        pooled_output <span class="op">=</span> torch.cat([pooled_output, b_cats], dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb12-22"><a href="#cb12-22"></a></span>
+<span id="cb12-23"><a href="#cb12-23"></a>        <span class="co"># send through pre-classifying linear layer</span></span>
+<span id="cb12-24"><a href="#cb12-24"></a>        pooled_output <span class="op">=</span> <span class="va">self</span>.pre_classifier(pooled_output)</span>
+<span id="cb12-25"><a href="#cb12-25"></a>        <span class="co"># relu</span></span>
+<span id="cb12-26"><a href="#cb12-26"></a>        pooled_output <span class="op">=</span> torch.nn.ReLU()(pooled_output)</span>
+<span id="cb12-27"><a href="#cb12-27"></a>        <span class="co"># add dropout</span></span>
+<span id="cb12-28"><a href="#cb12-28"></a>        pooled_output <span class="op">=</span> <span class="va">self</span>.dropout(pooled_output)</span>
+<span id="cb12-29"><a href="#cb12-29"></a>        <span class="co"># final classifying layer to yield logits</span></span>
+<span id="cb12-30"><a href="#cb12-30"></a>        logits <span class="op">=</span> <span class="va">self</span>.classifier(pooled_output)</span>
+<span id="cb12-31"><a href="#cb12-31"></a></span>
+<span id="cb12-32"><a href="#cb12-32"></a>        <span class="cf">return</span> logits</span></code></pre></div>
+</div>
+<div id="weighted-random-sampler" class="section level2" number="2.5">
+<h2 number="2.5"><span class="header-section-number">2.5</span> Weighted Random Sampler</h2>
+<p>Since data is usually imbalanced, a weighted sampler is prepared to help provide balance to our data loaders.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a><span class="co"># prepare weighted sampling for imbalanced classification</span></span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="kw">def</span> create_sampler(train_ds, csv_dataset):</span>
+<span id="cb13-3"><a href="#cb13-3"></a>    <span class="co"># get indicies from train split</span></span>
+<span id="cb13-4"><a href="#cb13-4"></a>    train_indices <span class="op">=</span> train_ds.indices</span>
+<span id="cb13-5"><a href="#cb13-5"></a>    <span class="co"># generate class distributions [y1, y2, etc...]</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>    bin_count <span class="op">=</span> np.bincount(csv_dataset.__get_target__()[train_indices])</span>
+<span id="cb13-7"><a href="#cb13-7"></a>    <span class="co"># weight gen</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a>    weight <span class="op">=</span> <span class="fl">1.</span> <span class="op">/</span> bin_count.astype(np.float32)</span>
+<span id="cb13-9"><a href="#cb13-9"></a>    <span class="co"># produce weights for each observation in the data set</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>    samples_weight <span class="op">=</span> torch.tensor([weight[t] <span class="cf">for</span> t <span class="kw">in</span> csv_dataset.__get_target__()[train_indices]])</span>
+<span id="cb13-11"><a href="#cb13-11"></a>    <span class="co"># prepare sampler</span></span>
+<span id="cb13-12"><a href="#cb13-12"></a>    sampler <span class="op">=</span> torch.utils.data.WeightedRandomSampler(weights<span class="op">=</span>samples_weight,</span>
+<span id="cb13-13"><a href="#cb13-13"></a>                                                     num_samples<span class="op">=</span><span class="bu">len</span>(samples_weight),</span>
+<span id="cb13-14"><a href="#cb13-14"></a>                                                     replacement<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb13-15"><a href="#cb13-15"></a>    <span class="cf">return</span> sampler</span>
+<span id="cb13-16"><a href="#cb13-16"></a></span>
+<span id="cb13-17"><a href="#cb13-17"></a><span class="co"># create sampler for the training ds</span></span>
+<span id="cb13-18"><a href="#cb13-18"></a>train_sampler <span class="op">=</span> create_sampler(train_ds, csv_dataset)    </span></code></pre></div>
+</div>
+<div id="training-functions" class="section level2" number="2.6">
+<h2 number="2.6"><span class="header-section-number">2.6</span> Training Functions</h2>
+<p>Now, a time helper function and the train, valid, and test workflows are prepared.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="co"># time function</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a><span class="kw">def</span> format_time(elapsed):</span>
+<span id="cb14-3"><a href="#cb14-3"></a>    <span class="co">&#39;&#39;&#39;</span></span>
+<span id="cb14-4"><a href="#cb14-4"></a><span class="co">    Takes a time in seconds and returns a string hh:mm:ss</span></span>
+<span id="cb14-5"><a href="#cb14-5"></a><span class="co">    &#39;&#39;&#39;</span></span>
+<span id="cb14-6"><a href="#cb14-6"></a>    <span class="co"># round to the nearest second.</span></span>
+<span id="cb14-7"><a href="#cb14-7"></a>    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</span>
+<span id="cb14-8"><a href="#cb14-8"></a>    <span class="co"># format as hh:mm:ss</span></span>
+<span id="cb14-9"><a href="#cb14-9"></a>    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</span>
+<span id="cb14-10"><a href="#cb14-10"></a></span>
+<span id="cb14-11"><a href="#cb14-11"></a><span class="kw">def</span> train(model, dataloader, optimizer):</span>
+<span id="cb14-12"><a href="#cb14-12"></a></span>
+<span id="cb14-13"><a href="#cb14-13"></a>    <span class="co"># capture time</span></span>
+<span id="cb14-14"><a href="#cb14-14"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb14-15"><a href="#cb14-15"></a></span>
+<span id="cb14-16"><a href="#cb14-16"></a>    <span class="co"># Perform one full pass over the training set.</span></span>
+<span id="cb14-17"><a href="#cb14-17"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb14-18"><a href="#cb14-18"></a>    <span class="bu">print</span>(<span class="st">&#39;======== Epoch </span><span class="sc">{:}</span><span class="st"> / </span><span class="sc">{:}</span><span class="st"> ========&#39;</span>.<span class="bu">format</span>(epoch <span class="op">+</span> <span class="dv">1</span>, epochs))</span>
+<span id="cb14-19"><a href="#cb14-19"></a>    <span class="bu">print</span>(<span class="st">&#39;Training...&#39;</span>)</span>
+<span id="cb14-20"><a href="#cb14-20"></a></span>
+<span id="cb14-21"><a href="#cb14-21"></a>    <span class="co"># reset total loss for epoch</span></span>
+<span id="cb14-22"><a href="#cb14-22"></a>    train_total_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-23"><a href="#cb14-23"></a>    total_train_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-24"><a href="#cb14-24"></a></span>
+<span id="cb14-25"><a href="#cb14-25"></a>    <span class="co"># put model into traning mode</span></span>
+<span id="cb14-26"><a href="#cb14-26"></a>    model.train()</span>
+<span id="cb14-27"><a href="#cb14-27"></a></span>
+<span id="cb14-28"><a href="#cb14-28"></a>    <span class="co"># for each batch of training data...</span></span>
+<span id="cb14-29"><a href="#cb14-29"></a>    <span class="cf">for</span> step, batch <span class="kw">in</span> <span class="bu">enumerate</span>(dataloader):</span>
+<span id="cb14-30"><a href="#cb14-30"></a></span>
+<span id="cb14-31"><a href="#cb14-31"></a>        <span class="co"># progress update every 40 batches.</span></span>
+<span id="cb14-32"><a href="#cb14-32"></a>        <span class="cf">if</span> step <span class="op">%</span> <span class="dv">40</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> step <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb14-33"><a href="#cb14-33"></a></span>
+<span id="cb14-34"><a href="#cb14-34"></a>            <span class="co"># Report progress.</span></span>
+<span id="cb14-35"><a href="#cb14-35"></a>            <span class="bu">print</span>(<span class="st">&#39;  Batch {:&gt;5,}  of  {:&gt;5,}.&#39;</span>.<span class="bu">format</span>(step, <span class="bu">len</span>(dataloader)))</span>
+<span id="cb14-36"><a href="#cb14-36"></a></span>
+<span id="cb14-37"><a href="#cb14-37"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb14-38"><a href="#cb14-38"></a>        <span class="co">#</span></span>
+<span id="cb14-39"><a href="#cb14-39"></a>        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></span>
+<span id="cb14-40"><a href="#cb14-40"></a>        <span class="co"># the `to` method.</span></span>
+<span id="cb14-41"><a href="#cb14-41"></a>        <span class="co">#</span></span>
+<span id="cb14-42"><a href="#cb14-42"></a>        b_input_ids <span class="op">=</span> batch[<span class="st">&#39;input_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb14-43"><a href="#cb14-43"></a>        b_input_mask <span class="op">=</span> batch[<span class="st">&#39;attn_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb14-44"><a href="#cb14-44"></a>        <span class="kw">global</span> b_cats</span>
+<span id="cb14-45"><a href="#cb14-45"></a>        b_cats <span class="op">=</span> batch[<span class="st">&#39;cats&#39;</span>].cuda()</span>
+<span id="cb14-46"><a href="#cb14-46"></a>        b_labels <span class="op">=</span> batch[<span class="st">&#39;target&#39;</span>].cuda().<span class="bu">long</span>()</span>
+<span id="cb14-47"><a href="#cb14-47"></a></span>
+<span id="cb14-48"><a href="#cb14-48"></a>        <span class="co"># clear previously calculated gradients</span></span>
+<span id="cb14-49"><a href="#cb14-49"></a>        optimizer.zero_grad()</span>
+<span id="cb14-50"><a href="#cb14-50"></a></span>
+<span id="cb14-51"><a href="#cb14-51"></a>        <span class="co"># runs the forward pass with autocasting.</span></span>
+<span id="cb14-52"><a href="#cb14-52"></a>        <span class="cf">with</span> autocast():</span>
+<span id="cb14-53"><a href="#cb14-53"></a>            <span class="co"># forward propagation (evaluate model on training batch)</span></span>
+<span id="cb14-54"><a href="#cb14-54"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>b_input_ids, attention_mask<span class="op">=</span>b_input_mask)</span>
+<span id="cb14-55"><a href="#cb14-55"></a></span>
+<span id="cb14-56"><a href="#cb14-56"></a>            <span class="co"># loss</span></span>
+<span id="cb14-57"><a href="#cb14-57"></a>            loss <span class="op">=</span> criterion(logits.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>), b_labels.view(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb14-58"><a href="#cb14-58"></a>            <span class="co"># sum the training loss over all batches for average loss at end</span></span>
+<span id="cb14-59"><a href="#cb14-59"></a>            <span class="co"># loss is a tensor containing a single value</span></span>
+<span id="cb14-60"><a href="#cb14-60"></a>            train_total_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb14-61"><a href="#cb14-61"></a></span>
+<span id="cb14-62"><a href="#cb14-62"></a>        <span class="co"># Scales loss.  Calls backward() on scaled loss to create scaled gradients.</span></span>
+<span id="cb14-63"><a href="#cb14-63"></a>        <span class="co"># Backward passes under autocast are not recommended.</span></span>
+<span id="cb14-64"><a href="#cb14-64"></a>        <span class="co"># Backward ops run in the same dtype autocast chose for corresponding forward ops.</span></span>
+<span id="cb14-65"><a href="#cb14-65"></a>        scaler.scale(loss).backward()</span>
+<span id="cb14-66"><a href="#cb14-66"></a></span>
+<span id="cb14-67"><a href="#cb14-67"></a>        <span class="co"># scaler.step() first unscales the gradients of the optimizer&#39;s assigned params.</span></span>
+<span id="cb14-68"><a href="#cb14-68"></a>        <span class="co"># If these gradients do not contain infs or NaNs, optimizer.step() is then called,</span></span>
+<span id="cb14-69"><a href="#cb14-69"></a>        <span class="co"># otherwise, optimizer.step() is skipped.</span></span>
+<span id="cb14-70"><a href="#cb14-70"></a>        scaler.step(optimizer)</span>
+<span id="cb14-71"><a href="#cb14-71"></a></span>
+<span id="cb14-72"><a href="#cb14-72"></a>        <span class="co"># Updates the scale for next iteration.</span></span>
+<span id="cb14-73"><a href="#cb14-73"></a>        scaler.update()</span>
+<span id="cb14-74"><a href="#cb14-74"></a></span>
+<span id="cb14-75"><a href="#cb14-75"></a>        <span class="co"># update the learning rate</span></span>
+<span id="cb14-76"><a href="#cb14-76"></a>        scheduler.step()</span>
+<span id="cb14-77"><a href="#cb14-77"></a></span>
+<span id="cb14-78"><a href="#cb14-78"></a>        <span class="co"># move logits and labels to CPU</span></span>
+<span id="cb14-79"><a href="#cb14-79"></a>        logits <span class="op">=</span> logits.detach().cpu().numpy()</span>
+<span id="cb14-80"><a href="#cb14-80"></a>        y_true <span class="op">=</span> b_labels.detach().cpu().numpy()</span>
+<span id="cb14-81"><a href="#cb14-81"></a></span>
+<span id="cb14-82"><a href="#cb14-82"></a>        <span class="co"># calculate preds</span></span>
+<span id="cb14-83"><a href="#cb14-83"></a>        rounded_preds <span class="op">=</span> np.argmax(logits, axis<span class="op">=</span><span class="dv">1</span>).flatten()</span>
+<span id="cb14-84"><a href="#cb14-84"></a></span>
+<span id="cb14-85"><a href="#cb14-85"></a>        <span class="co"># calculate f1</span></span>
+<span id="cb14-86"><a href="#cb14-86"></a>        total_train_f1 <span class="op">+=</span> f1_score(rounded_preds, y_true,</span>
+<span id="cb14-87"><a href="#cb14-87"></a>                                   average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb14-88"><a href="#cb14-88"></a>                                   labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb14-89"><a href="#cb14-89"></a></span>
+<span id="cb14-90"><a href="#cb14-90"></a>    <span class="co"># calculate the average loss over all of the batches</span></span>
+<span id="cb14-91"><a href="#cb14-91"></a>    avg_train_loss <span class="op">=</span> train_total_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-92"><a href="#cb14-92"></a></span>
+<span id="cb14-93"><a href="#cb14-93"></a>    <span class="co"># calculate the average f1 over all of the batches</span></span>
+<span id="cb14-94"><a href="#cb14-94"></a>    avg_train_f1 <span class="op">=</span> total_train_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-95"><a href="#cb14-95"></a></span>
+<span id="cb14-96"><a href="#cb14-96"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb14-97"><a href="#cb14-97"></a>    training_stats.append(</span>
+<span id="cb14-98"><a href="#cb14-98"></a>        {</span>
+<span id="cb14-99"><a href="#cb14-99"></a>            <span class="st">&#39;Train Loss&#39;</span>: avg_train_loss,</span>
+<span id="cb14-100"><a href="#cb14-100"></a>            <span class="st">&#39;Train F1&#39;</span>: avg_train_f1</span>
+<span id="cb14-101"><a href="#cb14-101"></a>        }</span>
+<span id="cb14-102"><a href="#cb14-102"></a>    )</span>
+<span id="cb14-103"><a href="#cb14-103"></a></span>
+<span id="cb14-104"><a href="#cb14-104"></a>    <span class="co"># training time end</span></span>
+<span id="cb14-105"><a href="#cb14-105"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb14-106"><a href="#cb14-106"></a></span>
+<span id="cb14-107"><a href="#cb14-107"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb14-108"><a href="#cb14-108"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb14-109"><a href="#cb14-109"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb14-110"><a href="#cb14-110"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | trn loss | trn f1 | trn time &quot;</span>)</span>
+<span id="cb14-111"><a href="#cb14-111"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb14-112"><a href="#cb14-112"></a></span>
+<span id="cb14-113"><a href="#cb14-113"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb14-114"><a href="#cb14-114"></a></span>
+<span id="cb14-115"><a href="#cb14-115"></a></span>
+<span id="cb14-116"><a href="#cb14-116"></a><span class="kw">def</span> validating(model, dataloader):</span>
+<span id="cb14-117"><a href="#cb14-117"></a></span>
+<span id="cb14-118"><a href="#cb14-118"></a>    <span class="co"># capture validation time</span></span>
+<span id="cb14-119"><a href="#cb14-119"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb14-120"><a href="#cb14-120"></a></span>
+<span id="cb14-121"><a href="#cb14-121"></a>    <span class="co"># After the completion of each training epoch, measure our performance on</span></span>
+<span id="cb14-122"><a href="#cb14-122"></a>    <span class="co"># our validation set.</span></span>
+<span id="cb14-123"><a href="#cb14-123"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb14-124"><a href="#cb14-124"></a>    <span class="bu">print</span>(<span class="st">&quot;Running Validation...&quot;</span>)</span>
+<span id="cb14-125"><a href="#cb14-125"></a></span>
+<span id="cb14-126"><a href="#cb14-126"></a>    <span class="co"># put the model in evaluation mode</span></span>
+<span id="cb14-127"><a href="#cb14-127"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb14-128"><a href="#cb14-128"></a></span>
+<span id="cb14-129"><a href="#cb14-129"></a>    <span class="co"># track variables</span></span>
+<span id="cb14-130"><a href="#cb14-130"></a>    total_valid_accuracy <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-131"><a href="#cb14-131"></a>    total_valid_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-132"><a href="#cb14-132"></a>    total_valid_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-133"><a href="#cb14-133"></a>    total_valid_recall <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-134"><a href="#cb14-134"></a>    total_valid_precision <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-135"><a href="#cb14-135"></a></span>
+<span id="cb14-136"><a href="#cb14-136"></a>    <span class="co"># evaluate data for one epoch</span></span>
+<span id="cb14-137"><a href="#cb14-137"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
+<span id="cb14-138"><a href="#cb14-138"></a></span>
+<span id="cb14-139"><a href="#cb14-139"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb14-140"><a href="#cb14-140"></a>        b_input_ids <span class="op">=</span> batch[<span class="st">&#39;input_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb14-141"><a href="#cb14-141"></a>        b_input_mask <span class="op">=</span> batch[<span class="st">&#39;attn_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb14-142"><a href="#cb14-142"></a>        <span class="kw">global</span> b_cats</span>
+<span id="cb14-143"><a href="#cb14-143"></a>        b_cats <span class="op">=</span> batch[<span class="st">&#39;cats&#39;</span>].cuda()</span>
+<span id="cb14-144"><a href="#cb14-144"></a>        b_labels <span class="op">=</span> batch[<span class="st">&#39;target&#39;</span>].cuda().<span class="bu">long</span>()</span>
+<span id="cb14-145"><a href="#cb14-145"></a></span>
+<span id="cb14-146"><a href="#cb14-146"></a>        <span class="co"># tell pytorch not to bother calculating gradients</span></span>
+<span id="cb14-147"><a href="#cb14-147"></a>        <span class="co"># as its only necessary for training</span></span>
+<span id="cb14-148"><a href="#cb14-148"></a>        <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb14-149"><a href="#cb14-149"></a></span>
+<span id="cb14-150"><a href="#cb14-150"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>b_input_ids, attention_mask<span class="op">=</span>b_input_mask)</span>
+<span id="cb14-151"><a href="#cb14-151"></a></span>
+<span id="cb14-152"><a href="#cb14-152"></a>            <span class="co"># loss</span></span>
+<span id="cb14-153"><a href="#cb14-153"></a>            loss <span class="op">=</span> criterion(logits.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>), b_labels.view(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb14-154"><a href="#cb14-154"></a></span>
+<span id="cb14-155"><a href="#cb14-155"></a>        <span class="co"># accumulate validation loss</span></span>
+<span id="cb14-156"><a href="#cb14-156"></a>        total_valid_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb14-157"><a href="#cb14-157"></a></span>
+<span id="cb14-158"><a href="#cb14-158"></a>        <span class="co"># move logits and labels to CPU</span></span>
+<span id="cb14-159"><a href="#cb14-159"></a>        logits <span class="op">=</span> logits.detach().cpu().numpy()</span>
+<span id="cb14-160"><a href="#cb14-160"></a>        y_true <span class="op">=</span> b_labels.detach().cpu().numpy()</span>
+<span id="cb14-161"><a href="#cb14-161"></a></span>
+<span id="cb14-162"><a href="#cb14-162"></a>        <span class="co"># calculate preds</span></span>
+<span id="cb14-163"><a href="#cb14-163"></a>        rounded_preds <span class="op">=</span> np.argmax(logits, axis<span class="op">=</span><span class="dv">1</span>).flatten()</span>
+<span id="cb14-164"><a href="#cb14-164"></a></span>
+<span id="cb14-165"><a href="#cb14-165"></a>        <span class="co"># calculate f1</span></span>
+<span id="cb14-166"><a href="#cb14-166"></a>        total_valid_f1 <span class="op">+=</span> f1_score(rounded_preds, y_true,</span>
+<span id="cb14-167"><a href="#cb14-167"></a>                                   average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb14-168"><a href="#cb14-168"></a>                                   labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb14-169"><a href="#cb14-169"></a></span>
+<span id="cb14-170"><a href="#cb14-170"></a>        <span class="co"># calculate accuracy</span></span>
+<span id="cb14-171"><a href="#cb14-171"></a>        total_valid_accuracy <span class="op">+=</span> accuracy_score(rounded_preds, y_true)</span>
+<span id="cb14-172"><a href="#cb14-172"></a></span>
+<span id="cb14-173"><a href="#cb14-173"></a>        <span class="co"># calculate precision</span></span>
+<span id="cb14-174"><a href="#cb14-174"></a>        total_valid_precision <span class="op">+=</span> precision_score(rounded_preds, y_true,</span>
+<span id="cb14-175"><a href="#cb14-175"></a>                                                 average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb14-176"><a href="#cb14-176"></a>                                                 labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb14-177"><a href="#cb14-177"></a></span>
+<span id="cb14-178"><a href="#cb14-178"></a>        <span class="co"># calculate recall</span></span>
+<span id="cb14-179"><a href="#cb14-179"></a>        total_valid_recall <span class="op">+=</span> recall_score(rounded_preds, y_true,</span>
+<span id="cb14-180"><a href="#cb14-180"></a>                                                 average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb14-181"><a href="#cb14-181"></a>                                                 labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb14-182"><a href="#cb14-182"></a></span>
+<span id="cb14-183"><a href="#cb14-183"></a>    <span class="co"># report final accuracy of validation run</span></span>
+<span id="cb14-184"><a href="#cb14-184"></a>    avg_accuracy <span class="op">=</span> total_valid_accuracy <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-185"><a href="#cb14-185"></a></span>
+<span id="cb14-186"><a href="#cb14-186"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb14-187"><a href="#cb14-187"></a>    <span class="kw">global</span> avg_val_f1</span>
+<span id="cb14-188"><a href="#cb14-188"></a>    avg_val_f1 <span class="op">=</span> total_valid_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-189"><a href="#cb14-189"></a></span>
+<span id="cb14-190"><a href="#cb14-190"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb14-191"><a href="#cb14-191"></a>    avg_precision <span class="op">=</span> total_valid_precision <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-192"><a href="#cb14-192"></a></span>
+<span id="cb14-193"><a href="#cb14-193"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb14-194"><a href="#cb14-194"></a>    avg_recall <span class="op">=</span> total_valid_recall <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-195"><a href="#cb14-195"></a></span>
+<span id="cb14-196"><a href="#cb14-196"></a>    <span class="co"># calculate the average loss over all of the batches.</span></span>
+<span id="cb14-197"><a href="#cb14-197"></a>    <span class="kw">global</span> avg_val_loss</span>
+<span id="cb14-198"><a href="#cb14-198"></a>    avg_val_loss <span class="op">=</span> total_valid_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb14-199"><a href="#cb14-199"></a></span>
+<span id="cb14-200"><a href="#cb14-200"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb14-201"><a href="#cb14-201"></a>    valid_stats.append(</span>
+<span id="cb14-202"><a href="#cb14-202"></a>        {</span>
+<span id="cb14-203"><a href="#cb14-203"></a>            <span class="st">&#39;Val Loss&#39;</span>: avg_val_loss,</span>
+<span id="cb14-204"><a href="#cb14-204"></a>            <span class="st">&#39;Val Accur.&#39;</span>: avg_accuracy,</span>
+<span id="cb14-205"><a href="#cb14-205"></a>            <span class="st">&#39;Val precision&#39;</span>: avg_precision,</span>
+<span id="cb14-206"><a href="#cb14-206"></a>            <span class="st">&#39;Val recall&#39;</span>: avg_recall,</span>
+<span id="cb14-207"><a href="#cb14-207"></a>            <span class="st">&#39;Val F1&#39;</span>: avg_val_f1</span>
+<span id="cb14-208"><a href="#cb14-208"></a>        }</span>
+<span id="cb14-209"><a href="#cb14-209"></a>    )</span>
+<span id="cb14-210"><a href="#cb14-210"></a></span>
+<span id="cb14-211"><a href="#cb14-211"></a>    <span class="co"># capture end validation time</span></span>
+<span id="cb14-212"><a href="#cb14-212"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb14-213"><a href="#cb14-213"></a></span>
+<span id="cb14-214"><a href="#cb14-214"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb14-215"><a href="#cb14-215"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb14-216"><a href="#cb14-216"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb14-217"><a href="#cb14-217"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | val loss | val f1 | val time&quot;</span>)</span>
+<span id="cb14-218"><a href="#cb14-218"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb14-219"><a href="#cb14-219"></a></span>
+<span id="cb14-220"><a href="#cb14-220"></a>    <span class="cf">return</span> <span class="va">None</span></span></code></pre></div>
+</div>
+<div id="preparing-to-train" class="section level2" number="2.7">
+<h2 number="2.7"><span class="header-section-number">2.7</span> Preparing to Train</h2>
+<p>Now we are ready to instantiate the model, the data loaders, and several other training helper objects.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a><span class="co"># Load DistilBERT_FE</span></span>
+<span id="cb15-2"><a href="#cb15-2"></a>model <span class="op">=</span> DistillBERT_FE().cuda()</span>
+<span id="cb15-3"><a href="#cb15-3"></a></span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="co"># optimizer</span></span></code></pre></div>
+<pre><code>## 
+Downloading:   0%|          | 0.00/442 [00:00&lt;?, ?B/s]
+Downloading: 100%|##########| 442/442 [00:00&lt;00:00, 442kB/s]
+## 
+Downloading:   0%|          | 0.00/268M [00:00&lt;?, ?B/s]
+Downloading:   0%|          | 489k/268M [00:00&lt;00:54, 4.89MB/s]
+Downloading:   1%|          | 1.76M/268M [00:00&lt;00:44, 6.00MB/s]
+Downloading:   1%|1         | 3.40M/268M [00:00&lt;00:35, 7.40MB/s]
+Downloading:   2%|1         | 5.16M/268M [00:00&lt;00:29, 8.95MB/s]
+Downloading:   3%|2         | 6.85M/268M [00:00&lt;00:25, 10.4MB/s]
+Downloading:   3%|3         | 8.51M/268M [00:00&lt;00:22, 11.7MB/s]
+Downloading:   4%|3         | 9.89M/268M [00:00&lt;00:22, 11.5MB/s]
+Downloading:   4%|4         | 11.9M/268M [00:00&lt;00:19, 13.2MB/s]
+Downloading:   5%|5         | 13.9M/268M [00:00&lt;00:17, 14.7MB/s]
+Downloading:   6%|6         | 16.2M/268M [00:01&lt;00:15, 16.4MB/s]
+Downloading:   7%|6         | 18.3M/268M [00:01&lt;00:14, 17.6MB/s]
+Downloading:   8%|7         | 20.4M/268M [00:01&lt;00:13, 18.4MB/s]
+Downloading:   8%|8         | 22.3M/268M [00:01&lt;00:13, 18.7MB/s]
+Downloading:   9%|9         | 24.4M/268M [00:01&lt;00:12, 19.2MB/s]
+Downloading:  10%|9         | 26.5M/268M [00:01&lt;00:12, 19.7MB/s]
+Downloading:  11%|#         | 28.5M/268M [00:01&lt;00:12, 19.8MB/s]
+Downloading:  11%|#1        | 30.7M/268M [00:01&lt;00:11, 20.3MB/s]
+Downloading:  12%|#2        | 32.9M/268M [00:01&lt;00:11, 20.7MB/s]
+Downloading:  13%|#3        | 35.0M/268M [00:01&lt;00:11, 21.0MB/s]
+Downloading:  14%|#3        | 37.2M/268M [00:02&lt;00:11, 20.9MB/s]
+Downloading:  15%|#4        | 39.3M/268M [00:02&lt;00:10, 21.0MB/s]
+Downloading:  16%|#5        | 41.5M/268M [00:02&lt;00:10, 21.2MB/s]
+Downloading:  16%|#6        | 43.8M/268M [00:02&lt;00:10, 21.5MB/s]
+Downloading:  17%|#7        | 45.9M/268M [00:02&lt;00:10, 21.0MB/s]
+Downloading:  18%|#7        | 48.1M/268M [00:02&lt;00:10, 21.2MB/s]
+Downloading:  19%|#8        | 50.2M/268M [00:02&lt;00:10, 21.1MB/s]
+Downloading:  20%|#9        | 52.5M/268M [00:02&lt;00:10, 21.5MB/s]
+Downloading:  20%|##        | 54.8M/268M [00:02&lt;00:09, 22.0MB/s]
+Downloading:  21%|##1       | 57.2M/268M [00:02&lt;00:09, 22.2MB/s]
+Downloading:  22%|##2       | 59.4M/268M [00:03&lt;00:09, 21.6MB/s]
+Downloading:  23%|##3       | 61.7M/268M [00:03&lt;00:09, 21.9MB/s]
+Downloading:  24%|##3       | 64.0M/268M [00:03&lt;00:09, 22.1MB/s]
+Downloading:  25%|##4       | 66.2M/268M [00:03&lt;00:09, 22.2MB/s]
+Downloading:  26%|##5       | 68.5M/268M [00:03&lt;00:08, 22.4MB/s]
+Downloading:  26%|##6       | 70.8M/268M [00:03&lt;00:08, 22.5MB/s]
+Downloading:  27%|##7       | 73.1M/268M [00:03&lt;00:08, 22.6MB/s]
+Downloading:  28%|##8       | 75.3M/268M [00:03&lt;00:08, 22.4MB/s]
+Downloading:  29%|##8       | 77.6M/268M [00:03&lt;00:08, 22.5MB/s]
+Downloading:  30%|##9       | 79.9M/268M [00:03&lt;00:08, 22.6MB/s]
+Downloading:  31%|###       | 82.3M/268M [00:04&lt;00:08, 22.8MB/s]
+Downloading:  32%|###1      | 84.5M/268M [00:04&lt;00:08, 22.7MB/s]
+Downloading:  32%|###2      | 86.9M/268M [00:04&lt;00:07, 22.9MB/s]
+Downloading:  33%|###3      | 89.2M/268M [00:04&lt;00:07, 23.0MB/s]
+Downloading:  34%|###4      | 91.5M/268M [00:04&lt;00:07, 22.4MB/s]
+Downloading:  35%|###4      | 93.8M/268M [00:04&lt;00:07, 22.3MB/s]
+Downloading:  36%|###5      | 96.0M/268M [00:04&lt;00:07, 22.2MB/s]
+Downloading:  37%|###6      | 98.2M/268M [00:04&lt;00:07, 21.8MB/s]
+Downloading:  37%|###7      | 100M/268M [00:04&lt;00:07, 22.0MB/s] 
+Downloading:  38%|###8      | 103M/268M [00:04&lt;00:07, 22.1MB/s]
+Downloading:  39%|###9      | 105M/268M [00:05&lt;00:07, 22.0MB/s]
+Downloading:  40%|###9      | 107M/268M [00:05&lt;00:07, 22.2MB/s]
+Downloading:  41%|####      | 109M/268M [00:05&lt;00:07, 21.6MB/s]
+Downloading:  42%|####1     | 112M/268M [00:05&lt;00:07, 21.9MB/s]
+Downloading:  43%|####2     | 114M/268M [00:05&lt;00:07, 21.9MB/s]
+Downloading:  43%|####3     | 116M/268M [00:05&lt;00:06, 22.1MB/s]
+Downloading:  44%|####4     | 118M/268M [00:05&lt;00:06, 22.1MB/s]
+Downloading:  45%|####5     | 121M/268M [00:05&lt;00:06, 21.8MB/s]
+Downloading:  46%|####5     | 123M/268M [00:05&lt;00:06, 22.0MB/s]
+Downloading:  47%|####6     | 125M/268M [00:06&lt;00:06, 22.4MB/s]
+Downloading:  48%|####7     | 128M/268M [00:06&lt;00:06, 22.2MB/s]
+Downloading:  48%|####8     | 130M/268M [00:06&lt;00:06, 22.4MB/s]
+Downloading:  49%|####9     | 132M/268M [00:06&lt;00:06, 22.5MB/s]
+Downloading:  50%|#####     | 134M/268M [00:06&lt;00:06, 22.1MB/s]
+Downloading:  51%|#####     | 137M/268M [00:06&lt;00:05, 22.0MB/s]
+Downloading:  52%|#####1    | 139M/268M [00:06&lt;00:06, 21.4MB/s]
+Downloading:  53%|#####2    | 141M/268M [00:06&lt;00:05, 21.3MB/s]
+Downloading:  53%|#####3    | 143M/268M [00:06&lt;00:05, 21.9MB/s]
+Downloading:  54%|#####4    | 145M/268M [00:06&lt;00:05, 21.6MB/s]
+Downloading:  55%|#####5    | 148M/268M [00:07&lt;00:05, 21.7MB/s]
+Downloading:  56%|#####5    | 150M/268M [00:07&lt;00:05, 22.0MB/s]
+Downloading:  57%|#####6    | 152M/268M [00:07&lt;00:05, 21.9MB/s]
+Downloading:  58%|#####7    | 154M/268M [00:07&lt;00:05, 21.7MB/s]
+Downloading:  58%|#####8    | 157M/268M [00:07&lt;00:05, 21.9MB/s]
+Downloading:  59%|#####9    | 159M/268M [00:07&lt;00:04, 22.0MB/s]
+Downloading:  60%|######    | 161M/268M [00:07&lt;00:04, 22.1MB/s]
+Downloading:  61%|######    | 163M/268M [00:07&lt;00:04, 22.5MB/s]
+Downloading:  62%|######1   | 166M/268M [00:07&lt;00:04, 22.5MB/s]
+Downloading:  63%|######2   | 168M/268M [00:07&lt;00:04, 22.1MB/s]
+Downloading:  64%|######3   | 170M/268M [00:08&lt;00:04, 22.3MB/s]
+Downloading:  64%|######4   | 173M/268M [00:08&lt;00:04, 22.6MB/s]
+Downloading:  65%|######5   | 175M/268M [00:08&lt;00:04, 22.7MB/s]
+Downloading:  66%|######6   | 177M/268M [00:08&lt;00:03, 22.8MB/s]
+Downloading:  67%|######6   | 179M/268M [00:08&lt;00:03, 22.3MB/s]
+Downloading:  68%|######7   | 182M/268M [00:08&lt;00:03, 22.6MB/s]
+Downloading:  69%|######8   | 184M/268M [00:08&lt;00:03, 22.4MB/s]
+Downloading:  70%|######9   | 186M/268M [00:08&lt;00:03, 22.4MB/s]
+Downloading:  70%|#######   | 189M/268M [00:08&lt;00:03, 22.5MB/s]
+Downloading:  71%|#######1  | 191M/268M [00:08&lt;00:03, 22.2MB/s]
+Downloading:  72%|#######2  | 193M/268M [00:09&lt;00:03, 22.4MB/s]
+Downloading:  73%|#######2  | 195M/268M [00:09&lt;00:03, 22.6MB/s]
+Downloading:  74%|#######3  | 198M/268M [00:09&lt;00:03, 22.6MB/s]
+Downloading:  75%|#######4  | 200M/268M [00:09&lt;00:02, 22.7MB/s]
+Downloading:  76%|#######5  | 202M/268M [00:09&lt;00:02, 22.6MB/s]
+Downloading:  76%|#######6  | 205M/268M [00:09&lt;00:02, 22.2MB/s]
+Downloading:  77%|#######7  | 207M/268M [00:09&lt;00:02, 22.2MB/s]
+Downloading:  78%|#######8  | 209M/268M [00:09&lt;00:02, 22.1MB/s]
+Downloading:  79%|#######8  | 211M/268M [00:09&lt;00:02, 21.6MB/s]
+Downloading:  80%|#######9  | 213M/268M [00:09&lt;00:02, 21.7MB/s]
+Downloading:  81%|########  | 216M/268M [00:10&lt;00:02, 22.0MB/s]
+Downloading:  81%|########1 | 218M/268M [00:10&lt;00:03, 13.0MB/s]
+Downloading:  82%|########2 | 220M/268M [00:10&lt;00:03, 14.3MB/s]
+Downloading:  83%|########2 | 222M/268M [00:10&lt;00:02, 16.1MB/s]
+Downloading:  84%|########3 | 224M/268M [00:10&lt;00:02, 17.4MB/s]
+Downloading:  85%|########4 | 226M/268M [00:10&lt;00:02, 18.6MB/s]
+Downloading:  85%|########5 | 229M/268M [00:10&lt;00:01, 19.8MB/s]
+Downloading:  86%|########6 | 231M/268M [00:11&lt;00:01, 20.4MB/s]
+Downloading:  87%|########7 | 233M/268M [00:11&lt;00:01, 20.5MB/s]
+Downloading:  88%|########7 | 235M/268M [00:11&lt;00:01, 21.0MB/s]
+Downloading:  89%|########8 | 238M/268M [00:11&lt;00:01, 21.4MB/s]
+Downloading:  90%|########9 | 240M/268M [00:11&lt;00:01, 21.4MB/s]
+Downloading:  90%|######### | 242M/268M [00:11&lt;00:01, 21.2MB/s]
+Downloading:  91%|#########1| 244M/268M [00:11&lt;00:01, 21.3MB/s]
+Downloading:  92%|#########1| 246M/268M [00:11&lt;00:00, 21.6MB/s]
+Downloading:  93%|#########2| 249M/268M [00:11&lt;00:00, 22.1MB/s]
+Downloading:  94%|#########3| 251M/268M [00:11&lt;00:00, 22.2MB/s]
+Downloading:  95%|#########4| 253M/268M [00:12&lt;00:00, 22.1MB/s]
+Downloading:  95%|#########5| 256M/268M [00:12&lt;00:00, 22.4MB/s]
+Downloading:  96%|#########6| 258M/268M [00:12&lt;00:00, 22.4MB/s]
+Downloading:  97%|#########7| 260M/268M [00:12&lt;00:00, 22.4MB/s]
+Downloading:  98%|#########7| 263M/268M [00:12&lt;00:00, 22.5MB/s]
+Downloading:  99%|#########8| 265M/268M [00:12&lt;00:00, 22.2MB/s]
+Downloading: 100%|#########9| 267M/268M [00:12&lt;00:00, 22.2MB/s]
+Downloading: 100%|##########| 268M/268M [00:12&lt;00:00, 21.1MB/s]</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a>optimizer <span class="op">=</span> AdamW(model.parameters(),</span>
+<span id="cb17-2"><a href="#cb17-2"></a>                  lr<span class="op">=</span><span class="fl">3.2696465645595003e-06</span>,</span>
+<span id="cb17-3"><a href="#cb17-3"></a>                  weight_decay<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb17-4"><a href="#cb17-4"></a>                )</span>
+<span id="cb17-5"><a href="#cb17-5"></a></span>
+<span id="cb17-6"><a href="#cb17-6"></a><span class="co"># set loss</span></span>
+<span id="cb17-7"><a href="#cb17-7"></a>criterion <span class="op">=</span> nn.CrossEntropyLoss()</span>
+<span id="cb17-8"><a href="#cb17-8"></a></span>
+<span id="cb17-9"><a href="#cb17-9"></a></span>
+<span id="cb17-10"><a href="#cb17-10"></a><span class="co"># set number of epochs</span></span>
+<span id="cb17-11"><a href="#cb17-11"></a>epochs <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb17-12"><a href="#cb17-12"></a></span>
+<span id="cb17-13"><a href="#cb17-13"></a><span class="co"># create DataLoaders with samplers</span></span>
+<span id="cb17-14"><a href="#cb17-14"></a>train_dataloader <span class="op">=</span> DataLoader(train_ds,</span>
+<span id="cb17-15"><a href="#cb17-15"></a>                              batch_size<span class="op">=</span><span class="dv">16</span>,</span>
+<span id="cb17-16"><a href="#cb17-16"></a>                              sampler<span class="op">=</span>train_sampler,</span>
+<span id="cb17-17"><a href="#cb17-17"></a>                              shuffle<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb17-18"><a href="#cb17-18"></a></span>
+<span id="cb17-19"><a href="#cb17-19"></a>valid_dataloader <span class="op">=</span> DataLoader(valid_ds,</span>
+<span id="cb17-20"><a href="#cb17-20"></a>                              batch_size<span class="op">=</span><span class="dv">16</span>,</span>
+<span id="cb17-21"><a href="#cb17-21"></a>                              shuffle<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-22"><a href="#cb17-22"></a></span>
+<span id="cb17-23"><a href="#cb17-23"></a>test_dataloader <span class="op">=</span> DataLoader(test_ds,</span>
+<span id="cb17-24"><a href="#cb17-24"></a>                              batch_size<span class="op">=</span><span class="dv">16</span>,</span>
+<span id="cb17-25"><a href="#cb17-25"></a>                              shuffle<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-26"><a href="#cb17-26"></a>                              </span>
+<span id="cb17-27"><a href="#cb17-27"></a><span class="co"># set LR scheduler</span></span>
+<span id="cb17-28"><a href="#cb17-28"></a>total_steps <span class="op">=</span> <span class="bu">len</span>(train_dataloader) <span class="op">*</span> epochs</span>
+<span id="cb17-29"><a href="#cb17-29"></a>scheduler <span class="op">=</span> get_linear_schedule_with_warmup(optimizer,</span>
+<span id="cb17-30"><a href="#cb17-30"></a>                                            num_warmup_steps<span class="op">=</span><span class="fl">0.1</span><span class="op">*</span>total_steps,</span>
+<span id="cb17-31"><a href="#cb17-31"></a>                                            num_training_steps<span class="op">=</span>total_steps)</span></code></pre></div>
+<p>Let’s check to see what a batch of data looks like and whether or not our weighted random sampler is functioning as intended.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1"></a><span class="co"># lets check class balance for each batch to see how the sampler is working</span></span>
+<span id="cb18-2"><a href="#cb18-2"></a><span class="cf">for</span> i, batch <span class="kw">in</span> <span class="bu">enumerate</span>(train_dataloader):</span>
+<span id="cb18-3"><a href="#cb18-3"></a>    <span class="bu">print</span>(<span class="st">&quot;batch index </span><span class="sc">{}</span><span class="st">, 0/1: </span><span class="sc">{}</span><span class="st">/</span><span class="sc">{}</span><span class="st">&quot;</span>.<span class="bu">format</span>(</span>
+<span id="cb18-4"><a href="#cb18-4"></a>        i, (batch[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="dv">0</span>).<span class="bu">sum</span>(), (batch[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="dv">1</span>).<span class="bu">sum</span>()))</span>
+<span id="cb18-5"><a href="#cb18-5"></a>    <span class="cf">if</span> i <span class="op">==</span> <span class="dv">14</span>:</span>
+<span id="cb18-6"><a href="#cb18-6"></a>        <span class="cf">break</span></span>
+<span id="cb18-7"><a href="#cb18-7"></a></span>
+<span id="cb18-8"><a href="#cb18-8"></a><span class="co"># lets have a look at a single batch of categorical embeddings</span></span></code></pre></div>
+<pre><code>## batch index 0, 0/1: 9/7
+## batch index 1, 0/1: 5/11
+## batch index 2, 0/1: 6/10
+## batch index 3, 0/1: 9/7
+## batch index 4, 0/1: 5/11
+## batch index 5, 0/1: 7/9
+## batch index 6, 0/1: 7/9
+## batch index 7, 0/1: 10/6
+## batch index 8, 0/1: 6/10
+## batch index 9, 0/1: 10/6
+## batch index 10, 0/1: 6/10
+## batch index 11, 0/1: 10/6
+## batch index 12, 0/1: 10/6
+## batch index 13, 0/1: 9/7
+## batch index 14, 0/1: 8/8</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a>batch[<span class="st">&#39;cats&#39;</span>]</span></code></pre></div>
+<pre><code>## tensor([[-0.7056, -0.5454,  1.0682, -0.1769],
+##         [-0.7056, -0.5454,  1.0682, -0.1769],
+##         [ 0.6741,  0.9107,  1.0682, -0.1769],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [-0.7056, -0.5454,  1.0682, -0.1769],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [ 0.6741,  0.9107,  0.1424, -1.2754],
+##         [-0.7056,  0.9107,  1.0682, -0.1769],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [ 0.6741,  0.9107,  0.1424, -1.2754],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [ 0.6741,  0.9107,  0.1424, -1.2754],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [ 0.6741,  0.9107,  1.0682, -0.1769],
+##         [ 0.6741,  0.9107,  1.0682, -1.2754],
+##         [-0.7056,  0.9107,  1.0682, -0.1769]], grad_fn=&lt;StackBackward&gt;)</code></pre>
+</div>
+<div id="training" class="section level2" number="2.8">
+<h2 number="2.8"><span class="header-section-number">2.8</span> Training</h2>
+<p>Now, we are ready to train.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1"></a><span class="co"># create gradient scaler for mixed precision</span></span>
+<span id="cb22-2"><a href="#cb22-2"></a>scaler <span class="op">=</span> GradScaler()</span>
+<span id="cb22-3"><a href="#cb22-3"></a></span>
+<span id="cb22-4"><a href="#cb22-4"></a><span class="co"># create training result storage</span></span>
+<span id="cb22-5"><a href="#cb22-5"></a>training_stats <span class="op">=</span> []</span>
+<span id="cb22-6"><a href="#cb22-6"></a>valid_stats <span class="op">=</span> []</span>
+<span id="cb22-7"><a href="#cb22-7"></a>best_valid_loss <span class="op">=</span> <span class="bu">float</span>(<span class="st">&#39;inf&#39;</span>)</span>
+<span id="cb22-8"><a href="#cb22-8"></a></span>
+<span id="cb22-9"><a href="#cb22-9"></a><span class="co"># for each epoch</span></span>
+<span id="cb22-10"><a href="#cb22-10"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(epochs):</span>
+<span id="cb22-11"><a href="#cb22-11"></a>    <span class="co"># train</span></span>
+<span id="cb22-12"><a href="#cb22-12"></a>    train(model, train_dataloader, optimizer)</span>
+<span id="cb22-13"><a href="#cb22-13"></a>    <span class="co"># validate</span></span>
+<span id="cb22-14"><a href="#cb22-14"></a>    validating(model, valid_dataloader)</span>
+<span id="cb22-15"><a href="#cb22-15"></a>    <span class="co"># check validation loss</span></span>
+<span id="cb22-16"><a href="#cb22-16"></a>    <span class="cf">if</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>] <span class="op">&lt;</span> best_valid_loss:</span>
+<span id="cb22-17"><a href="#cb22-17"></a>        best_valid_loss <span class="op">=</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>]</span>
+<span id="cb22-18"><a href="#cb22-18"></a>        <span class="co"># save best model for use later</span></span>
+<span id="cb22-19"><a href="#cb22-19"></a>        torch.save(model.state_dict(), <span class="st">&#39;bert-model1.pt&#39;</span>)  <span class="co"># torch save</span></span></code></pre></div>
+<pre><code>## 
+## ======== Epoch 1 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     1 | 0.46083 | 0.81059 | 0:02:36
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     1 | 0.31722 | 0.85896 | 0:00:13
+## 
+## ======== Epoch 2 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     2 | 0.31257 | 0.87632 | 0:02:34
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     2 | 0.30928 | 0.85402 | 0:00:13
+## 
+## ======== Epoch 3 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     3 | 0.27499 | 0.89340 | 0:02:32
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     3 | 0.27319 | 0.87726 | 0:00:12
+## 
+## ======== Epoch 4 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     4 | 0.24393 | 0.90583 | 0:02:31
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     4 | 0.27130 | 0.87891 | 0:00:13
+## 
+## ======== Epoch 5 / 5 ========
+## Training...
+##   Batch    40  of    503.
+##   Batch    80  of    503.
+##   Batch   120  of    503.
+##   Batch   160  of    503.
+##   Batch   200  of    503.
+##   Batch   240  of    503.
+##   Batch   280  of    503.
+##   Batch   320  of    503.
+##   Batch   360  of    503.
+##   Batch   400  of    503.
+##   Batch   440  of    503.
+##   Batch   480  of    503.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     5 | 0.26196 | 0.89868 | 0:02:33
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     5 | 0.28235 | 0.88039 | 0:00:13
+## 
+## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\metrics\classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
+##   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)
+## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\metrics\classification.py:1437: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples.
+##   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)</code></pre>
+<p>Lastly, the other added consequence of using the torch data set is that it allows us to more easily conduct error analysis by subsetting the batch indices to the original data frame like so:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1"></a><span class="co"># for error analysis</span></span>
+<span id="cb24-2"><a href="#cb24-2"></a>batch_idx <span class="op">=</span> np.array(batch[<span class="st">&#39;idx&#39;</span>])</span>
+<span id="cb24-3"><a href="#cb24-3"></a>csv_dataset.__get_values__(batch_idx)</span></code></pre></div>
+<pre><code>##             date  ... word_count
+## 1244   9/10/2018  ...        173
+## 291    1/21/2020  ...        132
+## 2411    5/4/2017  ...        317
+## 7044    2/3/2015  ...         60
+## 828    3/20/2019  ...        179
+## 3494   5/10/2016  ...         95
+## 8943   5/19/2014  ...         55
+## 1949  10/26/2017  ...        552
+## 4529    1/2/2016  ...         61
+## 9416   3/21/2014  ...         64
+## 2777    1/6/2017  ...         89
+## 7854   9/22/2014  ...         49
+## 2898  10/20/2016  ...        356
+## 2382   5/13/2017  ...         75
+## 2976    9/4/2016  ...        399
+## 1332   7/13/2018  ...        318
+## 
+## [16 rows x 17 columns]</code></pre>
+</div>
+</div>
+<div id="transformer-derived-categorical-embeddings" class="section level1" number="3">
+<h1 number="3"><span class="header-section-number">3</span> Transformer-derived Categorical Embeddings</h1>
+<p>In this section, the code will be provided with less discussion, as it mostly follows that of the section above. The logic here is that we will use transformers to generate contextual embeddings for our categorical variables by joining them and treating them as a long sentence. Then, by concatenating the categorical embeddings with that of the text embeddings, we will rely on our transformer architecture to eventually learn that they are joined together and to then conduct feature engineering for us.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1"></a><span class="co"># Create Dataset</span></span>
+<span id="cb26-2"><a href="#cb26-2"></a><span class="kw">class</span> CSVDataset(Dataset):</span>
+<span id="cb26-3"><a href="#cb26-3"></a>    <span class="co">&quot;&quot;&quot;Propaganda data set.&quot;&quot;&quot;</span></span>
+<span id="cb26-4"><a href="#cb26-4"></a></span>
+<span id="cb26-5"><a href="#cb26-5"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, csv_file, text_col, cat_cols, target, transform<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb26-6"><a href="#cb26-6"></a>        <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb26-7"><a href="#cb26-7"></a><span class="co">        Args:</span></span>
+<span id="cb26-8"><a href="#cb26-8"></a><span class="co">            csv_file (string): Path to the csv file with annotations.</span></span>
+<span id="cb26-9"><a href="#cb26-9"></a><span class="co">            text_col (string): column containing the text for analysis.</span></span>
+<span id="cb26-10"><a href="#cb26-10"></a><span class="co">            cat_cols (string): column(s) containing string categorical data.</span></span>
+<span id="cb26-11"><a href="#cb26-11"></a><span class="co">            target (string): column containing the dependent variable.</span></span>
+<span id="cb26-12"><a href="#cb26-12"></a><span class="co">            transform (callable, optional): Optional transform to be applied</span></span>
+<span id="cb26-13"><a href="#cb26-13"></a><span class="co">                on a sample.</span></span>
+<span id="cb26-14"><a href="#cb26-14"></a><span class="co">        &quot;&quot;&quot;</span></span>
+<span id="cb26-15"><a href="#cb26-15"></a>        <span class="co"># initialize</span></span>
+<span id="cb26-16"><a href="#cb26-16"></a>        <span class="va">self</span>.data_frame <span class="op">=</span> pd.read_csv(csv_file)</span>
+<span id="cb26-17"><a href="#cb26-17"></a>        <span class="va">self</span>.categorical_features <span class="op">=</span> cat_cols</span>
+<span id="cb26-18"><a href="#cb26-18"></a>        <span class="va">self</span>.text_features <span class="op">=</span> text_col</span>
+<span id="cb26-19"><a href="#cb26-19"></a>        <span class="va">self</span>.target <span class="op">=</span> target</span>
+<span id="cb26-20"><a href="#cb26-20"></a>        <span class="va">self</span>.transform <span class="op">=</span> transform</span>
+<span id="cb26-21"><a href="#cb26-21"></a>        </span>
+<span id="cb26-22"><a href="#cb26-22"></a>        <span class="co"># encode outcome</span></span>
+<span id="cb26-23"><a href="#cb26-23"></a>        <span class="va">self</span>.data_frame[target] <span class="op">=</span> LabelEncoder().fit_transform(<span class="va">self</span>.data_frame[target])</span>
+<span id="cb26-24"><a href="#cb26-24"></a></span>
+<span id="cb26-25"><a href="#cb26-25"></a>    <span class="kw">def</span> <span class="fu">__len__</span>(<span class="va">self</span>):</span>
+<span id="cb26-26"><a href="#cb26-26"></a>        <span class="cf">return</span> <span class="bu">len</span>(<span class="va">self</span>.data_frame)</span>
+<span id="cb26-27"><a href="#cb26-27"></a></span>
+<span id="cb26-28"><a href="#cb26-28"></a>    <span class="kw">def</span> __get_target__(<span class="va">self</span>):</span>
+<span id="cb26-29"><a href="#cb26-29"></a>        <span class="cf">return</span> <span class="va">self</span>.data_frame.target</span>
+<span id="cb26-30"><a href="#cb26-30"></a></span>
+<span id="cb26-31"><a href="#cb26-31"></a>    <span class="kw">def</span> __get_values__(<span class="va">self</span>, indices):</span>
+<span id="cb26-32"><a href="#cb26-32"></a>        <span class="cf">return</span> <span class="va">self</span>.data_frame.iloc[indices]</span>
+<span id="cb26-33"><a href="#cb26-33"></a></span>
+<span id="cb26-34"><a href="#cb26-34"></a>    <span class="kw">def</span> <span class="fu">__getitem__</span>(<span class="va">self</span>, idx):</span>
+<span id="cb26-35"><a href="#cb26-35"></a>        <span class="cf">if</span> torch.is_tensor(idx):</span>
+<span id="cb26-36"><a href="#cb26-36"></a>            idx <span class="op">=</span> idx.tolist()</span>
+<span id="cb26-37"><a href="#cb26-37"></a></span>
+<span id="cb26-38"><a href="#cb26-38"></a>        text <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.text_features]</span>
+<span id="cb26-39"><a href="#cb26-39"></a>        cats <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.categorical_features]</span>
+<span id="cb26-40"><a href="#cb26-40"></a>        target <span class="op">=</span> <span class="va">self</span>.data_frame.iloc[idx][<span class="va">self</span>.target]</span>
+<span id="cb26-41"><a href="#cb26-41"></a></span>
+<span id="cb26-42"><a href="#cb26-42"></a>        sample <span class="op">=</span> {<span class="st">&#39;text&#39;</span>: text, <span class="st">&#39;cats&#39;</span>: cats.values, <span class="st">&#39;target&#39;</span>: target, <span class="st">&#39;idx&#39;</span>: torch.tensor(idx)}</span>
+<span id="cb26-43"><a href="#cb26-43"></a></span>
+<span id="cb26-44"><a href="#cb26-44"></a>        <span class="cf">if</span> <span class="va">self</span>.transform:</span>
+<span id="cb26-45"><a href="#cb26-45"></a>            sample <span class="op">=</span> <span class="va">self</span>.transform(sample)</span>
+<span id="cb26-46"><a href="#cb26-46"></a></span>
+<span id="cb26-47"><a href="#cb26-47"></a>        <span class="cf">return</span> sample</span>
+<span id="cb26-48"><a href="#cb26-48"></a></span>
+<span id="cb26-49"><a href="#cb26-49"></a></span>
+<span id="cb26-50"><a href="#cb26-50"></a><span class="kw">class</span> Tokenize_Transform():</span>
+<span id="cb26-51"><a href="#cb26-51"></a></span>
+<span id="cb26-52"><a href="#cb26-52"></a>    <span class="kw">def</span> <span class="fu">__call__</span>(<span class="va">self</span>, sample):</span>
+<span id="cb26-53"><a href="#cb26-53"></a>        text, cats, target, idx <span class="op">=</span> (sample[<span class="st">&#39;text&#39;</span>][<span class="st">&#39;body&#39;</span>],</span>
+<span id="cb26-54"><a href="#cb26-54"></a>                              sample[<span class="st">&#39;cats&#39;</span>],</span>
+<span id="cb26-55"><a href="#cb26-55"></a>                              sample[<span class="st">&#39;target&#39;</span>].values.astype(np.int64),</span>
+<span id="cb26-56"><a href="#cb26-56"></a>                              sample[<span class="st">&#39;idx&#39;</span>])</span>
+<span id="cb26-57"><a href="#cb26-57"></a></span>
+<span id="cb26-58"><a href="#cb26-58"></a>        <span class="co"># transform text to input ids and attn masks</span></span>
+<span id="cb26-59"><a href="#cb26-59"></a>        tokenizer_output <span class="op">=</span> tokenizer.encode_plus(</span>
+<span id="cb26-60"><a href="#cb26-60"></a>                            text,  <span class="co"># document to encode.</span></span>
+<span id="cb26-61"><a href="#cb26-61"></a>                            add_special_tokens<span class="op">=</span><span class="va">True</span>,  <span class="co"># add &#39;[CLS]&#39; and &#39;[SEP]&#39;</span></span>
+<span id="cb26-62"><a href="#cb26-62"></a>                            max_length<span class="op">=</span><span class="dv">512</span>,  <span class="co"># set max length</span></span>
+<span id="cb26-63"><a href="#cb26-63"></a>                            truncation<span class="op">=</span><span class="va">True</span>,  <span class="co"># truncate longer messages</span></span>
+<span id="cb26-64"><a href="#cb26-64"></a>                            pad_to_max_length<span class="op">=</span><span class="va">True</span>,  <span class="co"># add padding</span></span>
+<span id="cb26-65"><a href="#cb26-65"></a>                            return_attention_mask<span class="op">=</span><span class="va">True</span>,  <span class="co"># create attn. masks</span></span>
+<span id="cb26-66"><a href="#cb26-66"></a>                            return_tensors<span class="op">=</span><span class="st">&#39;pt&#39;</span>  <span class="co"># return pytorch tensors</span></span>
+<span id="cb26-67"><a href="#cb26-67"></a>                       )</span>
+<span id="cb26-68"><a href="#cb26-68"></a>        input_ids, attn_mask <span class="op">=</span> tokenizer_output[<span class="st">&#39;input_ids&#39;</span>], tokenizer_output[<span class="st">&#39;attention_mask&#39;</span>]</span>
+<span id="cb26-69"><a href="#cb26-69"></a></span>
+<span id="cb26-70"><a href="#cb26-70"></a>        <span class="cf">return</span> {<span class="st">&#39;input_ids&#39;</span>: input_ids,</span>
+<span id="cb26-71"><a href="#cb26-71"></a>                <span class="st">&#39;attn_mask&#39;</span>: attn_mask,</span>
+<span id="cb26-72"><a href="#cb26-72"></a>                <span class="st">&#39;cats&#39;</span>: cats,</span>
+<span id="cb26-73"><a href="#cb26-73"></a>                <span class="st">&#39;target&#39;</span>: target,</span>
+<span id="cb26-74"><a href="#cb26-74"></a>                <span class="st">&#39;idx&#39;</span>: idx}</span>
+<span id="cb26-75"><a href="#cb26-75"></a></span>
+<span id="cb26-76"><a href="#cb26-76"></a></span>
+<span id="cb26-77"><a href="#cb26-77"></a><span class="kw">class</span> Tokenize_Cats():</span>
+<span id="cb26-78"><a href="#cb26-78"></a></span>
+<span id="cb26-79"><a href="#cb26-79"></a>    <span class="kw">def</span> <span class="fu">__call__</span>(<span class="va">self</span>, sample):</span>
+<span id="cb26-80"><a href="#cb26-80"></a>        text, cats, target, idx <span class="op">=</span> ((sample[<span class="st">&#39;input_ids&#39;</span>], sample[<span class="st">&#39;attn_mask&#39;</span>]),</span>
+<span id="cb26-81"><a href="#cb26-81"></a>                              sample[<span class="st">&#39;cats&#39;</span>],</span>
+<span id="cb26-82"><a href="#cb26-82"></a>                              sample[<span class="st">&#39;target&#39;</span>],</span>
+<span id="cb26-83"><a href="#cb26-83"></a>                              sample[<span class="st">&#39;idx&#39;</span>])</span>
+<span id="cb26-84"><a href="#cb26-84"></a></span>
+<span id="cb26-85"><a href="#cb26-85"></a>        <span class="co"># transform text to input ids and attn masks</span></span>
+<span id="cb26-86"><a href="#cb26-86"></a>        cat_input_ids <span class="op">=</span> []</span>
+<span id="cb26-87"><a href="#cb26-87"></a>        cat_attn_mask <span class="op">=</span> []</span>
+<span id="cb26-88"><a href="#cb26-88"></a>        encoded_dict <span class="op">=</span> tokenizer.encode_plus(</span>
+<span id="cb26-89"><a href="#cb26-89"></a>                                <span class="st">&#39; &#39;</span>.join(cats),                      <span class="co"># Sentence to encode.</span></span>
+<span id="cb26-90"><a href="#cb26-90"></a>                                add_special_tokens <span class="op">=</span> <span class="va">True</span>, <span class="co"># Add &#39;[CLS]&#39; and &#39;[SEP]&#39;</span></span>
+<span id="cb26-91"><a href="#cb26-91"></a>                                max_length <span class="op">=</span> <span class="dv">10</span>,           <span class="co"># Pad &amp; truncate all sentences.</span></span>
+<span id="cb26-92"><a href="#cb26-92"></a>                                truncation <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb26-93"><a href="#cb26-93"></a>                                pad_to_max_length <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb26-94"><a href="#cb26-94"></a>                                return_attention_mask <span class="op">=</span> <span class="va">True</span>,   <span class="co"># Construct attn. masks.</span></span>
+<span id="cb26-95"><a href="#cb26-95"></a>                                return_tensors <span class="op">=</span> <span class="st">&#39;pt&#39;</span>,     <span class="co"># Return pytorch tensors.</span></span>
+<span id="cb26-96"><a href="#cb26-96"></a>                           )</span>
+<span id="cb26-97"><a href="#cb26-97"></a>        cat_input_ids.append(encoded_dict[<span class="st">&#39;input_ids&#39;</span>])</span>
+<span id="cb26-98"><a href="#cb26-98"></a>        cat_attn_mask.append(encoded_dict[<span class="st">&#39;attention_mask&#39;</span>])</span>
+<span id="cb26-99"><a href="#cb26-99"></a></span>
+<span id="cb26-100"><a href="#cb26-100"></a>        <span class="co"># Convert the lists into tensors.</span></span>
+<span id="cb26-101"><a href="#cb26-101"></a>        cat_input_ids <span class="op">=</span> torch.cat(cat_input_ids, dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb26-102"><a href="#cb26-102"></a>        cat_attn_mask <span class="op">=</span> torch.cat(cat_attn_mask, dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb26-103"><a href="#cb26-103"></a></span>
+<span id="cb26-104"><a href="#cb26-104"></a>        <span class="cf">return</span> {<span class="st">&#39;input_ids&#39;</span>: text[<span class="dv">0</span>],</span>
+<span id="cb26-105"><a href="#cb26-105"></a>                <span class="st">&#39;attn_mask&#39;</span>: text[<span class="dv">1</span>],</span>
+<span id="cb26-106"><a href="#cb26-106"></a>                <span class="st">&#39;cats_ids&#39;</span>: cat_input_ids,</span>
+<span id="cb26-107"><a href="#cb26-107"></a>                <span class="st">&#39;cats_mask&#39;</span>: cat_attn_mask,</span>
+<span id="cb26-108"><a href="#cb26-108"></a>                <span class="st">&#39;target&#39;</span>: torch.from_numpy(target),</span>
+<span id="cb26-109"><a href="#cb26-109"></a>                <span class="st">&#39;idx&#39;</span>: idx}</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a>csv_dataset <span class="op">=</span> CSVDataset(csv_file<span class="op">=</span><span class="st">&#39;C:</span><span class="ch">\\</span><span class="st">Users</span><span class="ch">\\</span><span class="st">Andrew</span><span class="ch">\\</span><span class="st">Desktop</span><span class="ch">\\</span><span class="st">test_export.csv&#39;</span>,</span>
+<span id="cb27-2"><a href="#cb27-2"></a>                         text_col<span class="op">=</span>[<span class="st">&#39;body&#39;</span>],</span>
+<span id="cb27-3"><a href="#cb27-3"></a>                         cat_cols<span class="op">=</span>[<span class="st">&quot;sas_active&quot;</span>, <span class="st">&quot;peace_talks_active&quot;</span>, <span class="st">&quot;isisk_active&quot;</span>, <span class="st">&quot;administration&quot;</span>],</span>
+<span id="cb27-4"><a href="#cb27-4"></a>                         target<span class="op">=</span>[<span class="st">&#39;target&#39;</span>],</span>
+<span id="cb27-5"><a href="#cb27-5"></a>                         transform<span class="op">=</span>transforms.Compose([Tokenize_Transform(), Tokenize_Cats()]))</span></code></pre></div>
+<pre><code>## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\preprocessing\label.py:235: DataConversionWarning: A column-vector y was passed when a 1d array was expected. Please change the shape of y to (n_samples, ), for example using ravel().
+##   y = column_or_1d(y, warn=True)</code></pre>
+<div class="sourceCode" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1"></a>train_size <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.8</span> <span class="op">*</span> <span class="bu">len</span>(csv_dataset))</span>
+<span id="cb29-2"><a href="#cb29-2"></a>valid_size <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.1</span> <span class="op">*</span> <span class="bu">len</span>(csv_dataset))</span>
+<span id="cb29-3"><a href="#cb29-3"></a></span>
+<span id="cb29-4"><a href="#cb29-4"></a>train_ds, valid_ds, test_ds <span class="op">=</span> torch.utils.data.random_split(csv_dataset, [train_size, valid_size, valid_size<span class="op">+</span><span class="dv">1</span>])</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1"></a><span class="kw">class</span> DistillBERT_FE(torch.nn.Module):</span>
+<span id="cb30-2"><a href="#cb30-2"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb30-3"><a href="#cb30-3"></a>        <span class="bu">super</span>(DistillBERT_FE, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
+<span id="cb30-4"><a href="#cb30-4"></a>        <span class="va">self</span>.l1 <span class="op">=</span> DistilBertModel.from_pretrained(<span class="st">&quot;distilbert-base-uncased&quot;</span>)</span>
+<span id="cb30-5"><a href="#cb30-5"></a>        <span class="va">self</span>.pre_classifier <span class="op">=</span> torch.nn.Linear(<span class="dv">1536</span>, <span class="dv">1536</span>)  <span class="co"># 4 embed dim + 768</span></span>
+<span id="cb30-6"><a href="#cb30-6"></a>        <span class="va">self</span>.dropout <span class="op">=</span> torch.nn.Dropout(<span class="fl">0.3</span>)</span>
+<span id="cb30-7"><a href="#cb30-7"></a>        <span class="va">self</span>.classifier <span class="op">=</span> torch.nn.Linear(<span class="dv">1536</span>, <span class="dv">2</span>)  <span class="co"># 4 embed dim + 768</span></span>
+<span id="cb30-8"><a href="#cb30-8"></a></span>
+<span id="cb30-9"><a href="#cb30-9"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, input_ids, attention_mask):</span>
+<span id="cb30-10"><a href="#cb30-10"></a>        output_1 <span class="op">=</span> <span class="va">self</span>.l1(input_ids<span class="op">=</span>input_ids, attention_mask<span class="op">=</span>attention_mask)</span>
+<span id="cb30-11"><a href="#cb30-11"></a>        output_2 <span class="op">=</span> <span class="va">self</span>.l1(input_ids<span class="op">=</span>cats_ids, attention_mask<span class="op">=</span>cats_mask)</span>
+<span id="cb30-12"><a href="#cb30-12"></a>        hidden_state <span class="op">=</span> output_1[<span class="dv">0</span>]  <span class="co"># last hidden layer</span></span>
+<span id="cb30-13"><a href="#cb30-13"></a>        pooled_output <span class="op">=</span> hidden_state[:, <span class="dv">0</span>]  <span class="co"># just the cls token</span></span>
+<span id="cb30-14"><a href="#cb30-14"></a></span>
+<span id="cb30-15"><a href="#cb30-15"></a>        hidden_state2 <span class="op">=</span> output_2[<span class="dv">0</span>]  <span class="co"># last hidden layer</span></span>
+<span id="cb30-16"><a href="#cb30-16"></a>        pooled_output2 <span class="op">=</span> hidden_state2[:, <span class="dv">0</span>]  <span class="co"># just the cls token</span></span>
+<span id="cb30-17"><a href="#cb30-17"></a></span>
+<span id="cb30-18"><a href="#cb30-18"></a>        <span class="co"># cat transformer embeddings with entity embeddings</span></span>
+<span id="cb30-19"><a href="#cb30-19"></a>        pooled_output <span class="op">=</span> torch.cat([pooled_output, pooled_output2], dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb30-20"><a href="#cb30-20"></a></span>
+<span id="cb30-21"><a href="#cb30-21"></a>        <span class="co"># send through pre-classifying linear layer</span></span>
+<span id="cb30-22"><a href="#cb30-22"></a>        pooled_output <span class="op">=</span> <span class="va">self</span>.pre_classifier(pooled_output)</span>
+<span id="cb30-23"><a href="#cb30-23"></a>        <span class="co"># relu</span></span>
+<span id="cb30-24"><a href="#cb30-24"></a>        pooled_output <span class="op">=</span> torch.nn.ReLU()(pooled_output)</span>
+<span id="cb30-25"><a href="#cb30-25"></a>        <span class="co"># add dropout</span></span>
+<span id="cb30-26"><a href="#cb30-26"></a>        pooled_output <span class="op">=</span> <span class="va">self</span>.dropout(pooled_output)</span>
+<span id="cb30-27"><a href="#cb30-27"></a>        <span class="co"># final classifying layer to yield logits</span></span>
+<span id="cb30-28"><a href="#cb30-28"></a>        logits <span class="op">=</span> <span class="va">self</span>.classifier(pooled_output)</span>
+<span id="cb30-29"><a href="#cb30-29"></a>        <span class="cf">return</span> logits</span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1"></a></span>
+<span id="cb31-2"><a href="#cb31-2"></a><span class="co"># prepare weighted sampling for imbalanced classification</span></span>
+<span id="cb31-3"><a href="#cb31-3"></a><span class="kw">def</span> create_sampler(train_ds):</span>
+<span id="cb31-4"><a href="#cb31-4"></a>    <span class="co"># get indicies from train split</span></span>
+<span id="cb31-5"><a href="#cb31-5"></a>    train_indices <span class="op">=</span> train_ds.indices</span>
+<span id="cb31-6"><a href="#cb31-6"></a>    <span class="co"># generate class distributions [x, y]</span></span>
+<span id="cb31-7"><a href="#cb31-7"></a>    bin_count <span class="op">=</span> np.bincount(csv_dataset.__get_target__()[train_indices])</span>
+<span id="cb31-8"><a href="#cb31-8"></a>    <span class="co"># weight gen</span></span>
+<span id="cb31-9"><a href="#cb31-9"></a>    weight <span class="op">=</span> <span class="fl">1.</span> <span class="op">/</span> bin_count.astype(np.float32)</span>
+<span id="cb31-10"><a href="#cb31-10"></a>    <span class="co"># produce weights for each observation in the data set</span></span>
+<span id="cb31-11"><a href="#cb31-11"></a>    samples_weight <span class="op">=</span> torch.tensor([weight[t] <span class="cf">for</span> t <span class="kw">in</span> csv_dataset.__get_target__()[train_indices]])</span>
+<span id="cb31-12"><a href="#cb31-12"></a>    <span class="co"># prepare sampler</span></span>
+<span id="cb31-13"><a href="#cb31-13"></a>    sampler <span class="op">=</span> torch.utils.data.WeightedRandomSampler(weights<span class="op">=</span>samples_weight,</span>
+<span id="cb31-14"><a href="#cb31-14"></a>                                                     num_samples<span class="op">=</span><span class="bu">len</span>(samples_weight),</span>
+<span id="cb31-15"><a href="#cb31-15"></a>                                                     replacement<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb31-16"><a href="#cb31-16"></a>    <span class="cf">return</span> sampler</span>
+<span id="cb31-17"><a href="#cb31-17"></a></span>
+<span id="cb31-18"><a href="#cb31-18"></a><span class="co"># create sampler for the training ds</span></span>
+<span id="cb31-19"><a href="#cb31-19"></a>train_sampler <span class="op">=</span> create_sampler(train_ds)</span>
+<span id="cb31-20"><a href="#cb31-20"></a></span>
+<span id="cb31-21"><a href="#cb31-21"></a><span class="co"># set loss</span></span>
+<span id="cb31-22"><a href="#cb31-22"></a>criterion <span class="op">=</span> nn.CrossEntropyLoss()</span>
+<span id="cb31-23"><a href="#cb31-23"></a></span>
+<span id="cb31-24"><a href="#cb31-24"></a><span class="co"># time function</span></span>
+<span id="cb31-25"><a href="#cb31-25"></a><span class="kw">def</span> format_time(elapsed):</span>
+<span id="cb31-26"><a href="#cb31-26"></a>    <span class="co">&#39;&#39;&#39;</span></span>
+<span id="cb31-27"><a href="#cb31-27"></a><span class="co">    Takes a time in seconds and returns a string hh:mm:ss</span></span>
+<span id="cb31-28"><a href="#cb31-28"></a><span class="co">    &#39;&#39;&#39;</span></span>
+<span id="cb31-29"><a href="#cb31-29"></a>    <span class="co"># round to the nearest second.</span></span>
+<span id="cb31-30"><a href="#cb31-30"></a>    elapsed_rounded <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>((elapsed)))</span>
+<span id="cb31-31"><a href="#cb31-31"></a>    <span class="co"># format as hh:mm:ss</span></span>
+<span id="cb31-32"><a href="#cb31-32"></a>    <span class="cf">return</span> <span class="bu">str</span>(datetime.timedelta(seconds<span class="op">=</span>elapsed_rounded))</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1"></a></span>
+<span id="cb32-2"><a href="#cb32-2"></a><span class="kw">def</span> train(model, dataloader, optimizer):</span>
+<span id="cb32-3"><a href="#cb32-3"></a></span>
+<span id="cb32-4"><a href="#cb32-4"></a>    <span class="co"># capture time</span></span>
+<span id="cb32-5"><a href="#cb32-5"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb32-6"><a href="#cb32-6"></a></span>
+<span id="cb32-7"><a href="#cb32-7"></a>    <span class="co"># Perform one full pass over the training set.</span></span>
+<span id="cb32-8"><a href="#cb32-8"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb32-9"><a href="#cb32-9"></a>    <span class="bu">print</span>(<span class="st">&#39;======== Epoch </span><span class="sc">{:}</span><span class="st"> / </span><span class="sc">{:}</span><span class="st"> ========&#39;</span>.<span class="bu">format</span>(epoch <span class="op">+</span> <span class="dv">1</span>, epochs))</span>
+<span id="cb32-10"><a href="#cb32-10"></a>    <span class="bu">print</span>(<span class="st">&#39;Training...&#39;</span>)</span>
+<span id="cb32-11"><a href="#cb32-11"></a></span>
+<span id="cb32-12"><a href="#cb32-12"></a>    <span class="co"># reset total loss for epoch</span></span>
+<span id="cb32-13"><a href="#cb32-13"></a>    train_total_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-14"><a href="#cb32-14"></a>    total_train_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-15"><a href="#cb32-15"></a></span>
+<span id="cb32-16"><a href="#cb32-16"></a>    <span class="co"># put model into traning mode</span></span>
+<span id="cb32-17"><a href="#cb32-17"></a>    model.train()</span>
+<span id="cb32-18"><a href="#cb32-18"></a></span>
+<span id="cb32-19"><a href="#cb32-19"></a>    <span class="co"># for each batch of training data...</span></span>
+<span id="cb32-20"><a href="#cb32-20"></a>    <span class="cf">for</span> step, batch <span class="kw">in</span> <span class="bu">enumerate</span>(dataloader):</span>
+<span id="cb32-21"><a href="#cb32-21"></a></span>
+<span id="cb32-22"><a href="#cb32-22"></a>        <span class="co"># progress update every 40 batches.</span></span>
+<span id="cb32-23"><a href="#cb32-23"></a>        <span class="cf">if</span> step <span class="op">%</span> <span class="dv">40</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> step <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb32-24"><a href="#cb32-24"></a></span>
+<span id="cb32-25"><a href="#cb32-25"></a>            <span class="co"># Report progress.</span></span>
+<span id="cb32-26"><a href="#cb32-26"></a>            <span class="bu">print</span>(<span class="st">&#39;  Batch {:&gt;5,}  of  {:&gt;5,}.&#39;</span>.<span class="bu">format</span>(step, <span class="bu">len</span>(dataloader)))</span>
+<span id="cb32-27"><a href="#cb32-27"></a></span>
+<span id="cb32-28"><a href="#cb32-28"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb32-29"><a href="#cb32-29"></a>        <span class="co">#</span></span>
+<span id="cb32-30"><a href="#cb32-30"></a>        <span class="co"># As we unpack the batch, we&#39;ll also copy each tensor to the GPU using</span></span>
+<span id="cb32-31"><a href="#cb32-31"></a>        <span class="co"># the `to` method.</span></span>
+<span id="cb32-32"><a href="#cb32-32"></a>        <span class="co">#</span></span>
+<span id="cb32-33"><a href="#cb32-33"></a>        b_input_ids <span class="op">=</span> batch[<span class="st">&#39;input_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-34"><a href="#cb32-34"></a>        b_input_mask <span class="op">=</span> batch[<span class="st">&#39;attn_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-35"><a href="#cb32-35"></a>        <span class="kw">global</span> cats_ids, cats_mask</span>
+<span id="cb32-36"><a href="#cb32-36"></a>        cats_ids <span class="op">=</span> batch[<span class="st">&#39;cats_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-37"><a href="#cb32-37"></a>        cats_mask <span class="op">=</span> batch[<span class="st">&#39;cats_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-38"><a href="#cb32-38"></a>        b_labels <span class="op">=</span> batch[<span class="st">&#39;target&#39;</span>].cuda().<span class="bu">long</span>()</span>
+<span id="cb32-39"><a href="#cb32-39"></a></span>
+<span id="cb32-40"><a href="#cb32-40"></a>        <span class="co"># clear previously calculated gradients</span></span>
+<span id="cb32-41"><a href="#cb32-41"></a>        optimizer.zero_grad()</span>
+<span id="cb32-42"><a href="#cb32-42"></a></span>
+<span id="cb32-43"><a href="#cb32-43"></a>        <span class="co"># runs the forward pass with autocasting.</span></span>
+<span id="cb32-44"><a href="#cb32-44"></a>        <span class="cf">with</span> autocast():</span>
+<span id="cb32-45"><a href="#cb32-45"></a>            <span class="co"># forward propagation (evaluate model on training batch)</span></span>
+<span id="cb32-46"><a href="#cb32-46"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>b_input_ids, attention_mask<span class="op">=</span>b_input_mask)</span>
+<span id="cb32-47"><a href="#cb32-47"></a></span>
+<span id="cb32-48"><a href="#cb32-48"></a>            <span class="co"># loss</span></span>
+<span id="cb32-49"><a href="#cb32-49"></a>            loss <span class="op">=</span> criterion(logits.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>), b_labels.view(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb32-50"><a href="#cb32-50"></a>            <span class="co"># sum the training loss over all batches for average loss at end</span></span>
+<span id="cb32-51"><a href="#cb32-51"></a>            <span class="co"># loss is a tensor containing a single value</span></span>
+<span id="cb32-52"><a href="#cb32-52"></a>            train_total_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb32-53"><a href="#cb32-53"></a></span>
+<span id="cb32-54"><a href="#cb32-54"></a>        <span class="co"># Scales loss.  Calls backward() on scaled loss to create scaled gradients.</span></span>
+<span id="cb32-55"><a href="#cb32-55"></a>        <span class="co"># Backward passes under autocast are not recommended.</span></span>
+<span id="cb32-56"><a href="#cb32-56"></a>        <span class="co"># Backward ops run in the same dtype autocast chose for corresponding forward ops.</span></span>
+<span id="cb32-57"><a href="#cb32-57"></a>        scaler.scale(loss).backward()</span>
+<span id="cb32-58"><a href="#cb32-58"></a></span>
+<span id="cb32-59"><a href="#cb32-59"></a>        <span class="co"># scaler.step() first unscales the gradients of the optimizer&#39;s assigned params.</span></span>
+<span id="cb32-60"><a href="#cb32-60"></a>        <span class="co"># If these gradients do not contain infs or NaNs, optimizer.step() is then called,</span></span>
+<span id="cb32-61"><a href="#cb32-61"></a>        <span class="co"># otherwise, optimizer.step() is skipped.</span></span>
+<span id="cb32-62"><a href="#cb32-62"></a>        scaler.step(optimizer)</span>
+<span id="cb32-63"><a href="#cb32-63"></a></span>
+<span id="cb32-64"><a href="#cb32-64"></a>        <span class="co"># Updates the scale for next iteration.</span></span>
+<span id="cb32-65"><a href="#cb32-65"></a>        scaler.update()</span>
+<span id="cb32-66"><a href="#cb32-66"></a></span>
+<span id="cb32-67"><a href="#cb32-67"></a>        <span class="co"># update the learning rate</span></span>
+<span id="cb32-68"><a href="#cb32-68"></a>        scheduler.step()</span>
+<span id="cb32-69"><a href="#cb32-69"></a></span>
+<span id="cb32-70"><a href="#cb32-70"></a>        <span class="co"># move logits and labels to CPU</span></span>
+<span id="cb32-71"><a href="#cb32-71"></a>        logits <span class="op">=</span> logits.detach().cpu().numpy()</span>
+<span id="cb32-72"><a href="#cb32-72"></a>        y_true <span class="op">=</span> b_labels.detach().cpu().numpy()</span>
+<span id="cb32-73"><a href="#cb32-73"></a></span>
+<span id="cb32-74"><a href="#cb32-74"></a>        <span class="co"># calculate preds</span></span>
+<span id="cb32-75"><a href="#cb32-75"></a>        rounded_preds <span class="op">=</span> np.argmax(logits, axis<span class="op">=</span><span class="dv">1</span>).flatten()</span>
+<span id="cb32-76"><a href="#cb32-76"></a></span>
+<span id="cb32-77"><a href="#cb32-77"></a>        <span class="co"># calculate f1</span></span>
+<span id="cb32-78"><a href="#cb32-78"></a>        total_train_f1 <span class="op">+=</span> f1_score(rounded_preds, y_true,</span>
+<span id="cb32-79"><a href="#cb32-79"></a>                                   average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb32-80"><a href="#cb32-80"></a>                                   labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb32-81"><a href="#cb32-81"></a></span>
+<span id="cb32-82"><a href="#cb32-82"></a>    <span class="co"># calculate the average loss over all of the batches</span></span>
+<span id="cb32-83"><a href="#cb32-83"></a>    avg_train_loss <span class="op">=</span> train_total_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-84"><a href="#cb32-84"></a></span>
+<span id="cb32-85"><a href="#cb32-85"></a>    <span class="co"># calculate the average f1 over all of the batches</span></span>
+<span id="cb32-86"><a href="#cb32-86"></a>    avg_train_f1 <span class="op">=</span> total_train_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-87"><a href="#cb32-87"></a></span>
+<span id="cb32-88"><a href="#cb32-88"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb32-89"><a href="#cb32-89"></a>    training_stats.append(</span>
+<span id="cb32-90"><a href="#cb32-90"></a>        {</span>
+<span id="cb32-91"><a href="#cb32-91"></a>            <span class="st">&#39;Train Loss&#39;</span>: avg_train_loss,</span>
+<span id="cb32-92"><a href="#cb32-92"></a>            <span class="st">&#39;Train F1&#39;</span>: avg_train_f1</span>
+<span id="cb32-93"><a href="#cb32-93"></a>        }</span>
+<span id="cb32-94"><a href="#cb32-94"></a>    )</span>
+<span id="cb32-95"><a href="#cb32-95"></a></span>
+<span id="cb32-96"><a href="#cb32-96"></a>    <span class="co"># training time end</span></span>
+<span id="cb32-97"><a href="#cb32-97"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb32-98"><a href="#cb32-98"></a></span>
+<span id="cb32-99"><a href="#cb32-99"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb32-100"><a href="#cb32-100"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb32-101"><a href="#cb32-101"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb32-102"><a href="#cb32-102"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | trn loss | trn f1 | trn time &quot;</span>)</span>
+<span id="cb32-103"><a href="#cb32-103"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_train_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb32-104"><a href="#cb32-104"></a></span>
+<span id="cb32-105"><a href="#cb32-105"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb32-106"><a href="#cb32-106"></a></span>
+<span id="cb32-107"><a href="#cb32-107"></a></span>
+<span id="cb32-108"><a href="#cb32-108"></a><span class="kw">def</span> validating(model, dataloader):</span>
+<span id="cb32-109"><a href="#cb32-109"></a></span>
+<span id="cb32-110"><a href="#cb32-110"></a>    <span class="co"># capture validation time</span></span>
+<span id="cb32-111"><a href="#cb32-111"></a>    total_t0 <span class="op">=</span> time.time()</span>
+<span id="cb32-112"><a href="#cb32-112"></a></span>
+<span id="cb32-113"><a href="#cb32-113"></a>    <span class="co"># After the completion of each training epoch, measure our performance on</span></span>
+<span id="cb32-114"><a href="#cb32-114"></a>    <span class="co"># our validation set.</span></span>
+<span id="cb32-115"><a href="#cb32-115"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb32-116"><a href="#cb32-116"></a>    <span class="bu">print</span>(<span class="st">&quot;Running Validation...&quot;</span>)</span>
+<span id="cb32-117"><a href="#cb32-117"></a></span>
+<span id="cb32-118"><a href="#cb32-118"></a>    <span class="co"># put the model in evaluation mode</span></span>
+<span id="cb32-119"><a href="#cb32-119"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb32-120"><a href="#cb32-120"></a></span>
+<span id="cb32-121"><a href="#cb32-121"></a>    <span class="co"># track variables</span></span>
+<span id="cb32-122"><a href="#cb32-122"></a>    total_valid_accuracy <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-123"><a href="#cb32-123"></a>    total_valid_loss <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-124"><a href="#cb32-124"></a>    total_valid_f1 <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-125"><a href="#cb32-125"></a>    total_valid_recall <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-126"><a href="#cb32-126"></a>    total_valid_precision <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb32-127"><a href="#cb32-127"></a></span>
+<span id="cb32-128"><a href="#cb32-128"></a>    <span class="co"># evaluate data for one epoch</span></span>
+<span id="cb32-129"><a href="#cb32-129"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
+<span id="cb32-130"><a href="#cb32-130"></a></span>
+<span id="cb32-131"><a href="#cb32-131"></a>        <span class="co"># Unpack this training batch from our dataloader:</span></span>
+<span id="cb32-132"><a href="#cb32-132"></a>        b_input_ids <span class="op">=</span> batch[<span class="st">&#39;input_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-133"><a href="#cb32-133"></a>        b_input_mask <span class="op">=</span> batch[<span class="st">&#39;attn_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-134"><a href="#cb32-134"></a>        <span class="kw">global</span> cats_ids, cats_mask</span>
+<span id="cb32-135"><a href="#cb32-135"></a>        cats_ids <span class="op">=</span> batch[<span class="st">&#39;cats_ids&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-136"><a href="#cb32-136"></a>        cats_mask <span class="op">=</span> batch[<span class="st">&#39;cats_mask&#39;</span>].squeeze(<span class="dv">1</span>).cuda()</span>
+<span id="cb32-137"><a href="#cb32-137"></a>        b_labels <span class="op">=</span> batch[<span class="st">&#39;target&#39;</span>].cuda().<span class="bu">long</span>()</span>
+<span id="cb32-138"><a href="#cb32-138"></a></span>
+<span id="cb32-139"><a href="#cb32-139"></a>        <span class="co"># tell pytorch not to bother calculating gradients</span></span>
+<span id="cb32-140"><a href="#cb32-140"></a>        <span class="co"># as its only necessary for training</span></span>
+<span id="cb32-141"><a href="#cb32-141"></a>        <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb32-142"><a href="#cb32-142"></a></span>
+<span id="cb32-143"><a href="#cb32-143"></a>            logits <span class="op">=</span> model(input_ids<span class="op">=</span>b_input_ids, attention_mask<span class="op">=</span>b_input_mask)</span>
+<span id="cb32-144"><a href="#cb32-144"></a></span>
+<span id="cb32-145"><a href="#cb32-145"></a>            <span class="co"># loss</span></span>
+<span id="cb32-146"><a href="#cb32-146"></a>            loss <span class="op">=</span> criterion(logits.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>), b_labels.view(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb32-147"><a href="#cb32-147"></a></span>
+<span id="cb32-148"><a href="#cb32-148"></a>        <span class="co"># accumulate validation loss</span></span>
+<span id="cb32-149"><a href="#cb32-149"></a>        total_valid_loss <span class="op">+=</span> loss.item()</span>
+<span id="cb32-150"><a href="#cb32-150"></a></span>
+<span id="cb32-151"><a href="#cb32-151"></a>        <span class="co"># move logits and labels to CPU</span></span>
+<span id="cb32-152"><a href="#cb32-152"></a>        logits <span class="op">=</span> logits.detach().cpu().numpy()</span>
+<span id="cb32-153"><a href="#cb32-153"></a>        y_true <span class="op">=</span> b_labels.detach().cpu().numpy()</span>
+<span id="cb32-154"><a href="#cb32-154"></a></span>
+<span id="cb32-155"><a href="#cb32-155"></a>        <span class="co"># calculate preds</span></span>
+<span id="cb32-156"><a href="#cb32-156"></a>        rounded_preds <span class="op">=</span> np.argmax(logits, axis<span class="op">=</span><span class="dv">1</span>).flatten()</span>
+<span id="cb32-157"><a href="#cb32-157"></a></span>
+<span id="cb32-158"><a href="#cb32-158"></a>        <span class="co"># calculate f1</span></span>
+<span id="cb32-159"><a href="#cb32-159"></a>        total_valid_f1 <span class="op">+=</span> f1_score(rounded_preds, y_true,</span>
+<span id="cb32-160"><a href="#cb32-160"></a>                                   average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb32-161"><a href="#cb32-161"></a>                                   labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb32-162"><a href="#cb32-162"></a></span>
+<span id="cb32-163"><a href="#cb32-163"></a>        <span class="co"># calculate accuracy</span></span>
+<span id="cb32-164"><a href="#cb32-164"></a>        total_valid_accuracy <span class="op">+=</span> accuracy_score(rounded_preds, y_true)</span>
+<span id="cb32-165"><a href="#cb32-165"></a></span>
+<span id="cb32-166"><a href="#cb32-166"></a>        <span class="co"># calculate precision</span></span>
+<span id="cb32-167"><a href="#cb32-167"></a>        total_valid_precision <span class="op">+=</span> precision_score(rounded_preds, y_true,</span>
+<span id="cb32-168"><a href="#cb32-168"></a>                                                 average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb32-169"><a href="#cb32-169"></a>                                                 labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb32-170"><a href="#cb32-170"></a></span>
+<span id="cb32-171"><a href="#cb32-171"></a>        <span class="co"># calculate recall</span></span>
+<span id="cb32-172"><a href="#cb32-172"></a>        total_valid_recall <span class="op">+=</span> recall_score(rounded_preds, y_true,</span>
+<span id="cb32-173"><a href="#cb32-173"></a>                                                 average<span class="op">=</span><span class="st">&#39;weighted&#39;</span>,</span>
+<span id="cb32-174"><a href="#cb32-174"></a>                                                 labels<span class="op">=</span>np.unique(rounded_preds))</span>
+<span id="cb32-175"><a href="#cb32-175"></a></span>
+<span id="cb32-176"><a href="#cb32-176"></a>    <span class="co"># report final accuracy of validation run</span></span>
+<span id="cb32-177"><a href="#cb32-177"></a>    avg_accuracy <span class="op">=</span> total_valid_accuracy <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-178"><a href="#cb32-178"></a></span>
+<span id="cb32-179"><a href="#cb32-179"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb32-180"><a href="#cb32-180"></a>    <span class="kw">global</span> avg_val_f1</span>
+<span id="cb32-181"><a href="#cb32-181"></a>    avg_val_f1 <span class="op">=</span> total_valid_f1 <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-182"><a href="#cb32-182"></a></span>
+<span id="cb32-183"><a href="#cb32-183"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb32-184"><a href="#cb32-184"></a>    avg_precision <span class="op">=</span> total_valid_precision <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-185"><a href="#cb32-185"></a></span>
+<span id="cb32-186"><a href="#cb32-186"></a>    <span class="co"># report final f1 of validation run</span></span>
+<span id="cb32-187"><a href="#cb32-187"></a>    avg_recall <span class="op">=</span> total_valid_recall <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-188"><a href="#cb32-188"></a></span>
+<span id="cb32-189"><a href="#cb32-189"></a>    <span class="co"># calculate the average loss over all of the batches.</span></span>
+<span id="cb32-190"><a href="#cb32-190"></a>    <span class="kw">global</span> avg_val_loss</span>
+<span id="cb32-191"><a href="#cb32-191"></a>    avg_val_loss <span class="op">=</span> total_valid_loss <span class="op">/</span> <span class="bu">len</span>(dataloader)</span>
+<span id="cb32-192"><a href="#cb32-192"></a></span>
+<span id="cb32-193"><a href="#cb32-193"></a>    <span class="co"># Record all statistics from this epoch.</span></span>
+<span id="cb32-194"><a href="#cb32-194"></a>    valid_stats.append(</span>
+<span id="cb32-195"><a href="#cb32-195"></a>        {</span>
+<span id="cb32-196"><a href="#cb32-196"></a>            <span class="st">&#39;Val Loss&#39;</span>: avg_val_loss,</span>
+<span id="cb32-197"><a href="#cb32-197"></a>            <span class="st">&#39;Val Accur.&#39;</span>: avg_accuracy,</span>
+<span id="cb32-198"><a href="#cb32-198"></a>            <span class="st">&#39;Val precision&#39;</span>: avg_precision,</span>
+<span id="cb32-199"><a href="#cb32-199"></a>            <span class="st">&#39;Val recall&#39;</span>: avg_recall,</span>
+<span id="cb32-200"><a href="#cb32-200"></a>            <span class="st">&#39;Val F1&#39;</span>: avg_val_f1</span>
+<span id="cb32-201"><a href="#cb32-201"></a>        }</span>
+<span id="cb32-202"><a href="#cb32-202"></a>    )</span>
+<span id="cb32-203"><a href="#cb32-203"></a></span>
+<span id="cb32-204"><a href="#cb32-204"></a>    <span class="co"># capture end validation time</span></span>
+<span id="cb32-205"><a href="#cb32-205"></a>    training_time <span class="op">=</span> format_time(time.time() <span class="op">-</span> total_t0)</span>
+<span id="cb32-206"><a href="#cb32-206"></a></span>
+<span id="cb32-207"><a href="#cb32-207"></a>    <span class="co"># print result summaries</span></span>
+<span id="cb32-208"><a href="#cb32-208"></a>    <span class="bu">print</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb32-209"><a href="#cb32-209"></a>    <span class="bu">print</span>(<span class="st">&quot;summary results&quot;</span>)</span>
+<span id="cb32-210"><a href="#cb32-210"></a>    <span class="bu">print</span>(<span class="st">&quot;epoch | val loss | val f1 | val time&quot;</span>)</span>
+<span id="cb32-211"><a href="#cb32-211"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">:5d}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_loss<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>avg_val_f1<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>training_time<span class="sc">:}</span><span class="ss">&quot;</span>)</span>
+<span id="cb32-212"><a href="#cb32-212"></a></span>
+<span id="cb32-213"><a href="#cb32-213"></a>    <span class="cf">return</span> <span class="va">None</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1"></a></span>
+<span id="cb33-2"><a href="#cb33-2"></a></span>
+<span id="cb33-3"><a href="#cb33-3"></a><span class="co"># Load DistilBERT_FE</span></span>
+<span id="cb33-4"><a href="#cb33-4"></a>model <span class="op">=</span> DistillBERT_FE().cuda()</span>
+<span id="cb33-5"><a href="#cb33-5"></a></span>
+<span id="cb33-6"><a href="#cb33-6"></a><span class="co"># optimizer</span></span>
+<span id="cb33-7"><a href="#cb33-7"></a>optimizer <span class="op">=</span> AdamW(model.parameters(),</span>
+<span id="cb33-8"><a href="#cb33-8"></a>                  lr<span class="op">=</span><span class="fl">3.2696465645595003e-06</span>,</span>
+<span id="cb33-9"><a href="#cb33-9"></a>                  weight_decay<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb33-10"><a href="#cb33-10"></a>                )</span>
+<span id="cb33-11"><a href="#cb33-11"></a></span>
+<span id="cb33-12"><a href="#cb33-12"></a></span>
+<span id="cb33-13"><a href="#cb33-13"></a><span class="co"># set number of epochs</span></span>
+<span id="cb33-14"><a href="#cb33-14"></a>epochs <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb33-15"><a href="#cb33-15"></a></span>
+<span id="cb33-16"><a href="#cb33-16"></a><span class="co"># create DataLoaders with samplers</span></span>
+<span id="cb33-17"><a href="#cb33-17"></a>train_dataloader <span class="op">=</span> DataLoader(train_ds,</span>
+<span id="cb33-18"><a href="#cb33-18"></a>                              batch_size<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb33-19"><a href="#cb33-19"></a>                              sampler<span class="op">=</span>train_sampler,</span>
+<span id="cb33-20"><a href="#cb33-20"></a>                              shuffle<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb33-21"><a href="#cb33-21"></a></span>
+<span id="cb33-22"><a href="#cb33-22"></a>valid_dataloader <span class="op">=</span> DataLoader(valid_ds,</span>
+<span id="cb33-23"><a href="#cb33-23"></a>                              batch_size<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb33-24"><a href="#cb33-24"></a>                              shuffle<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb33-25"><a href="#cb33-25"></a></span>
+<span id="cb33-26"><a href="#cb33-26"></a>test_dataloader <span class="op">=</span> DataLoader(test_ds,</span>
+<span id="cb33-27"><a href="#cb33-27"></a>                              batch_size<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb33-28"><a href="#cb33-28"></a>                              shuffle<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb33-29"><a href="#cb33-29"></a></span>
+<span id="cb33-30"><a href="#cb33-30"></a></span>
+<span id="cb33-31"><a href="#cb33-31"></a><span class="co"># set LR scheduler</span></span>
+<span id="cb33-32"><a href="#cb33-32"></a>total_steps <span class="op">=</span> <span class="bu">len</span>(train_dataloader) <span class="op">*</span> epochs</span>
+<span id="cb33-33"><a href="#cb33-33"></a>scheduler <span class="op">=</span> get_linear_schedule_with_warmup(optimizer,</span>
+<span id="cb33-34"><a href="#cb33-34"></a>                                            num_warmup_steps<span class="op">=</span>total_steps<span class="op">*</span><span class="fl">0.1</span>,</span>
+<span id="cb33-35"><a href="#cb33-35"></a>                                            num_training_steps<span class="op">=</span>total_steps)</span>
+<span id="cb33-36"><a href="#cb33-36"></a></span>
+<span id="cb33-37"><a href="#cb33-37"></a></span>
+<span id="cb33-38"><a href="#cb33-38"></a><span class="co"># lets check class balance for each batch to see how the sampler is working</span></span>
+<span id="cb33-39"><a href="#cb33-39"></a><span class="cf">for</span> i, batch <span class="kw">in</span> <span class="bu">enumerate</span>(train_dataloader):</span>
+<span id="cb33-40"><a href="#cb33-40"></a>    <span class="bu">print</span>(<span class="st">&quot;batch index </span><span class="sc">{}</span><span class="st">, 0/1: </span><span class="sc">{}</span><span class="st">/</span><span class="sc">{}</span><span class="st">&quot;</span>.<span class="bu">format</span>(</span>
+<span id="cb33-41"><a href="#cb33-41"></a>        i, (batch[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="dv">0</span>).<span class="bu">sum</span>(), (batch[<span class="st">&#39;target&#39;</span>] <span class="op">==</span> <span class="dv">1</span>).<span class="bu">sum</span>()))</span>
+<span id="cb33-42"><a href="#cb33-42"></a>    <span class="cf">if</span> i <span class="op">==</span> <span class="dv">14</span>:</span>
+<span id="cb33-43"><a href="#cb33-43"></a>        <span class="cf">break</span></span></code></pre></div>
+<pre><code>## batch index 0, 0/1: 5/3
+## batch index 1, 0/1: 4/4
+## batch index 2, 0/1: 3/5
+## batch index 3, 0/1: 5/3
+## batch index 4, 0/1: 2/6
+## batch index 5, 0/1: 2/6
+## batch index 6, 0/1: 3/5
+## batch index 7, 0/1: 6/2
+## batch index 8, 0/1: 4/4
+## batch index 9, 0/1: 3/5
+## batch index 10, 0/1: 3/5
+## batch index 11, 0/1: 2/6
+## batch index 12, 0/1: 4/4
+## batch index 13, 0/1: 3/5
+## batch index 14, 0/1: 3/5</code></pre>
+<div class="sourceCode" id="cb35"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1"></a></span>
+<span id="cb35-2"><a href="#cb35-2"></a><span class="co"># create gradient scaler for mixed precision</span></span>
+<span id="cb35-3"><a href="#cb35-3"></a>scaler <span class="op">=</span> GradScaler()</span>
+<span id="cb35-4"><a href="#cb35-4"></a></span>
+<span id="cb35-5"><a href="#cb35-5"></a><span class="co"># create training result storage</span></span>
+<span id="cb35-6"><a href="#cb35-6"></a>training_stats <span class="op">=</span> []</span>
+<span id="cb35-7"><a href="#cb35-7"></a>valid_stats <span class="op">=</span> []</span>
+<span id="cb35-8"><a href="#cb35-8"></a>best_valid_loss <span class="op">=</span> <span class="bu">float</span>(<span class="st">&#39;inf&#39;</span>)</span>
+<span id="cb35-9"><a href="#cb35-9"></a></span>
+<span id="cb35-10"><a href="#cb35-10"></a><span class="co"># for each epoch</span></span>
+<span id="cb35-11"><a href="#cb35-11"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(epochs):</span>
+<span id="cb35-12"><a href="#cb35-12"></a>    <span class="co"># train</span></span>
+<span id="cb35-13"><a href="#cb35-13"></a>    train(model, train_dataloader, optimizer)</span>
+<span id="cb35-14"><a href="#cb35-14"></a>    <span class="co"># validate</span></span>
+<span id="cb35-15"><a href="#cb35-15"></a>    validating(model, valid_dataloader)</span>
+<span id="cb35-16"><a href="#cb35-16"></a>    <span class="co"># check validation loss</span></span>
+<span id="cb35-17"><a href="#cb35-17"></a>    <span class="cf">if</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>] <span class="op">&lt;</span> best_valid_loss:</span>
+<span id="cb35-18"><a href="#cb35-18"></a>        best_valid_loss <span class="op">=</span> valid_stats[epoch][<span class="st">&#39;Val Loss&#39;</span>]</span>
+<span id="cb35-19"><a href="#cb35-19"></a>        <span class="co"># save best model for use later</span></span>
+<span id="cb35-20"><a href="#cb35-20"></a>        torch.save(model.state_dict(), <span class="st">&#39;bert-model1.pt&#39;</span>)  <span class="co"># torch save</span></span></code></pre></div>
+<pre><code>## 
+## ======== Epoch 1 / 5 ========
+## Training...
+##   Batch    40  of  1,005.
+##   Batch    80  of  1,005.
+##   Batch   120  of  1,005.
+##   Batch   160  of  1,005.
+##   Batch   200  of  1,005.
+##   Batch   240  of  1,005.
+##   Batch   280  of  1,005.
+##   Batch   320  of  1,005.
+##   Batch   360  of  1,005.
+##   Batch   400  of  1,005.
+##   Batch   440  of  1,005.
+##   Batch   480  of  1,005.
+##   Batch   520  of  1,005.
+##   Batch   560  of  1,005.
+##   Batch   600  of  1,005.
+##   Batch   640  of  1,005.
+##   Batch   680  of  1,005.
+##   Batch   720  of  1,005.
+##   Batch   760  of  1,005.
+##   Batch   800  of  1,005.
+##   Batch   840  of  1,005.
+##   Batch   880  of  1,005.
+##   Batch   920  of  1,005.
+##   Batch   960  of  1,005.
+##   Batch 1,000  of  1,005.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     1 | 0.43771 | 0.80962 | 0:03:02
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     1 | 0.36443 | 0.81212 | 0:00:13
+## 
+## ======== Epoch 2 / 5 ========
+## Training...
+##   Batch    40  of  1,005.
+##   Batch    80  of  1,005.
+##   Batch   120  of  1,005.
+##   Batch   160  of  1,005.
+##   Batch   200  of  1,005.
+##   Batch   240  of  1,005.
+##   Batch   280  of  1,005.
+##   Batch   320  of  1,005.
+##   Batch   360  of  1,005.
+##   Batch   400  of  1,005.
+##   Batch   440  of  1,005.
+##   Batch   480  of  1,005.
+##   Batch   520  of  1,005.
+##   Batch   560  of  1,005.
+##   Batch   600  of  1,005.
+##   Batch   640  of  1,005.
+##   Batch   680  of  1,005.
+##   Batch   720  of  1,005.
+##   Batch   760  of  1,005.
+##   Batch   800  of  1,005.
+##   Batch   840  of  1,005.
+##   Batch   880  of  1,005.
+##   Batch   920  of  1,005.
+##   Batch   960  of  1,005.
+##   Batch 1,000  of  1,005.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     2 | 0.29222 | 0.88269 | 0:03:05
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     2 | 0.33665 | 0.83473 | 0:00:13
+## 
+## ======== Epoch 3 / 5 ========
+## Training...
+##   Batch    40  of  1,005.
+##   Batch    80  of  1,005.
+##   Batch   120  of  1,005.
+##   Batch   160  of  1,005.
+##   Batch   200  of  1,005.
+##   Batch   240  of  1,005.
+##   Batch   280  of  1,005.
+##   Batch   320  of  1,005.
+##   Batch   360  of  1,005.
+##   Batch   400  of  1,005.
+##   Batch   440  of  1,005.
+##   Batch   480  of  1,005.
+##   Batch   520  of  1,005.
+##   Batch   560  of  1,005.
+##   Batch   600  of  1,005.
+##   Batch   640  of  1,005.
+##   Batch   680  of  1,005.
+##   Batch   720  of  1,005.
+##   Batch   760  of  1,005.
+##   Batch   800  of  1,005.
+##   Batch   840  of  1,005.
+##   Batch   880  of  1,005.
+##   Batch   920  of  1,005.
+##   Batch   960  of  1,005.
+##   Batch 1,000  of  1,005.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     3 | 0.26064 | 0.89359 | 0:03:05
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     3 | 0.33270 | 0.83736 | 0:00:13
+## 
+## ======== Epoch 4 / 5 ========
+## Training...
+##   Batch    40  of  1,005.
+##   Batch    80  of  1,005.
+##   Batch   120  of  1,005.
+##   Batch   160  of  1,005.
+##   Batch   200  of  1,005.
+##   Batch   240  of  1,005.
+##   Batch   280  of  1,005.
+##   Batch   320  of  1,005.
+##   Batch   360  of  1,005.
+##   Batch   400  of  1,005.
+##   Batch   440  of  1,005.
+##   Batch   480  of  1,005.
+##   Batch   520  of  1,005.
+##   Batch   560  of  1,005.
+##   Batch   600  of  1,005.
+##   Batch   640  of  1,005.
+##   Batch   680  of  1,005.
+##   Batch   720  of  1,005.
+##   Batch   760  of  1,005.
+##   Batch   800  of  1,005.
+##   Batch   840  of  1,005.
+##   Batch   880  of  1,005.
+##   Batch   920  of  1,005.
+##   Batch   960  of  1,005.
+##   Batch 1,000  of  1,005.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     4 | 0.23057 | 0.91137 | 0:03:03
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     4 | 0.33422 | 0.84537 | 0:00:13
+## 
+## ======== Epoch 5 / 5 ========
+## Training...
+##   Batch    40  of  1,005.
+##   Batch    80  of  1,005.
+##   Batch   120  of  1,005.
+##   Batch   160  of  1,005.
+##   Batch   200  of  1,005.
+##   Batch   240  of  1,005.
+##   Batch   280  of  1,005.
+##   Batch   320  of  1,005.
+##   Batch   360  of  1,005.
+##   Batch   400  of  1,005.
+##   Batch   440  of  1,005.
+##   Batch   480  of  1,005.
+##   Batch   520  of  1,005.
+##   Batch   560  of  1,005.
+##   Batch   600  of  1,005.
+##   Batch   640  of  1,005.
+##   Batch   680  of  1,005.
+##   Batch   720  of  1,005.
+##   Batch   760  of  1,005.
+##   Batch   800  of  1,005.
+##   Batch   840  of  1,005.
+##   Batch   880  of  1,005.
+##   Batch   920  of  1,005.
+##   Batch   960  of  1,005.
+##   Batch 1,000  of  1,005.
+## 
+## summary results
+## epoch | trn loss | trn f1 | trn time 
+##     5 | 0.21859 | 0.91334 | 0:03:07
+## 
+## Running Validation...
+## 
+## summary results
+## epoch | val loss | val f1 | val time
+##     5 | 0.33059 | 0.84985 | 0:00:13
+## 
+## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\metrics\classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
+##   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)
+## C:\Users\Andrew\Anaconda3\envs\my_ml\lib\site-packages\sklearn\metrics\classification.py:1437: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples.
+##   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)</code></pre>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
