@@ -7,6 +7,7 @@
 
 # Site Settings
 locale                   : "en-US"
+google_analytics:        : UA-179006846-1
 title                    : "seekinginference"
 title_separator          : "|"
 name                     : &name "Andrew Fogarty"
