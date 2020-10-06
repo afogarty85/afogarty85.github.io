@@ -12,10 +12,11 @@ main:
   - title: "Applied ML"
     url: /ML/
 
+  - title: "Deep Learning"
+    url: /DL/
+
   - title: "Applied NLP"
     url: /NLP/
 
   - title: "CV"
     url: /files/CV.pdf
-
-
