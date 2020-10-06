@@ -1,13 +1,13 @@
 ---
-layout: archive
-title: "Projects"
-permalink: /projects/
+layout: single
+permalink: /DL/
+title: "Deep Learning"
 author_profile: true
 ---
 
 {% include base_path %}
 
 
-{% for post in site.DL %}
+{% for post in site._DL %}
   {% include archive-single.html %}
 {% endfor %}
