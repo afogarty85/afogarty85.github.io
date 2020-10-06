@@ -227,6 +227,14 @@ defaults:
       layout: single
       author_profile: true
 
+  # _DL
+  - scope:
+      path: ""
+      type: DL
+    values:
+      layout: single
+      author_profile: true
+
   # _applied
   - scope:
       path: ""
