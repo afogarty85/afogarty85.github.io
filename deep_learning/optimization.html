@@ -350,12 +350,12 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb2-13"><a href="#cb2-13"></a></span>
 <span id="cb2-14"><a href="#cb2-14"></a>SEED <span class="op">=</span> <span class="dv">123</span></span>
 <span id="cb2-15"><a href="#cb2-15"></a>torch.manual_seed(SEED)</span></code></pre></div>
-<pre><code>## &lt;torch._C.Generator object at 0x000000001F63D070&gt;</code></pre>
+<pre><code>## &lt;torch._C.Generator object at 0x000000002058C050&gt;</code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
 <span id="cb4-2"><a href="#cb4-2"></a>torch.cuda.amp.autocast(enabled<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb4-3"><a href="#cb4-3"></a></span>
 <span id="cb4-4"><a href="#cb4-4"></a><span class="co"># set torch device</span></span></code></pre></div>
-<pre><code>## &lt;torch.cuda.amp.autocast_mode.autocast object at 0x000000001E981248&gt;</code></pre>
+<pre><code>## &lt;torch.cuda.amp.autocast_mode.autocast object at 0x000000001F86B808&gt;</code></pre>
 <div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>device <span class="op">=</span> torch.device(<span class="st">&quot;cuda:0&quot;</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">&quot;cpu&quot;</span>)</span></code></pre></div>
 <div id="introduction" class="section level1" number="1">
 <h1 number="1"><span class="header-section-number">1</span> Introduction</h1>
@@ -489,7 +489,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb13-9"><a href="#cb13-9"></a><span class="co">        &quot;&quot;&quot;</span></span>
 <span id="cb13-10"><a href="#cb13-10"></a>        <span class="va">self</span>.num_features <span class="op">=</span> num_features</span>
 <span id="cb13-11"><a href="#cb13-11"></a>        <span class="va">self</span>.weights <span class="op">=</span> torch.zeros(<span class="dv">1</span>, num_features,</span>
-<span id="cb13-12"><a href="#cb13-12"></a>                                   dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device)</span>
+<span id="cb13-12"><a href="#cb13-12"></a>                                   dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device).normal_(<span class="fl">0.0</span>, <span class="fl">0.1</span>)</span>
 <span id="cb13-13"><a href="#cb13-13"></a>        <span class="va">self</span>.bias <span class="op">=</span> torch.zeros(<span class="dv">1</span>, dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device)</span>
 <span id="cb13-14"><a href="#cb13-14"></a>        <span class="va">self</span>.LAMBDA <span class="op">=</span> LAMBDA</span>
 <span id="cb13-15"><a href="#cb13-15"></a></span>
@@ -578,27 +578,27 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb15-40"><a href="#cb15-40"></a>    train_logs <span class="op">=</span> <span class="ss">f&#39;</span><span class="ch">\n</span><span class="ss">Epoch: </span><span class="sc">{</span>epoch<span class="sc">}</span><span class="ss"> - &#39;</span> <span class="op">+</span> <span class="st">&quot;-&quot;</span>.join([<span class="ss">f&#39; </span><span class="sc">{</span>key<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>value<span class="sc">:.4f}</span><span class="ss"> &#39;</span> <span class="cf">for</span> key, value <span class="kw">in</span> logs.items()])</span>
 <span id="cb15-41"><a href="#cb15-41"></a>    <span class="bu">print</span>(train_logs)</span></code></pre></div>
 <pre><code>## 
-## Epoch: 1 -  train_loss: 61.5775 
+## Epoch: 1 -  train_loss: 61.5763 
 ## 
-## Epoch: 2 -  train_loss: 68.8576 
+## Epoch: 2 -  train_loss: 68.8976 
 ## 
-## Epoch: 3 -  train_loss: 75.1168 
+## Epoch: 3 -  train_loss: 75.1295 
 ## 
-## Epoch: 4 -  train_loss: 79.3916 
+## Epoch: 4 -  train_loss: 79.3965 
 ## 
-## Epoch: 5 -  train_loss: 80.2312 
+## Epoch: 5 -  train_loss: 80.2331 
 ## 
-## Epoch: 6 -  train_loss: 81.3288 
+## Epoch: 6 -  train_loss: 81.3295 
 ## 
-## Epoch: 7 -  train_loss: 81.1131 
+## Epoch: 7 -  train_loss: 81.1134 
 ## 
-## Epoch: 8 -  train_loss: 82.3649 
+## Epoch: 8 -  train_loss: 82.3650 
 ## 
 ## Epoch: 9 -  train_loss: 81.3603 
 ## 
-## Epoch: 10 -  train_loss: 81.6684 
+## Epoch: 10 -  train_loss: 81.6685 
 ## 
-## Epoch: 11 -  train_loss: 80.6159 
+## Epoch: 11 -  train_loss: 80.6160 
 ## 
 ## Epoch: 12 -  train_loss: 81.1265 
 ## 
@@ -724,7 +724,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb27-12"><a href="#cb27-12"></a>        <span class="va">self</span>.num_features <span class="op">=</span> num_features</span>
 <span id="cb27-13"><a href="#cb27-13"></a>        <span class="co"># initialize weights as zeros</span></span>
 <span id="cb27-14"><a href="#cb27-14"></a>        <span class="va">self</span>.weights <span class="op">=</span> torch.zeros(<span class="dv">1</span>, num_features,</span>
-<span id="cb27-15"><a href="#cb27-15"></a>                                   dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device)</span>
+<span id="cb27-15"><a href="#cb27-15"></a>                                   dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device).normal_(<span class="fl">0.0</span>, <span class="fl">0.1</span>)</span>
 <span id="cb27-16"><a href="#cb27-16"></a>        <span class="co"># initialize bias as zeros</span></span>
 <span id="cb27-17"><a href="#cb27-17"></a>        <span class="va">self</span>.bias <span class="op">=</span> torch.zeros(<span class="dv">1</span>, dtype<span class="op">=</span>torch.float32, device<span class="op">=</span>device)</span>
 <span id="cb27-18"><a href="#cb27-18"></a>        <span class="co"># initialize LAMBDA</span></span>
@@ -795,9 +795,9 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb30-31"><a href="#cb30-31"></a>    train_logs <span class="op">=</span> <span class="ss">f&#39;</span><span class="ch">\n</span><span class="ss">Epoch: </span><span class="sc">{</span>epoch<span class="sc">}</span><span class="ss"> - &#39;</span> <span class="op">+</span> <span class="st">&quot;-&quot;</span>.join([<span class="ss">f&#39; </span><span class="sc">{</span>key<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>value<span class="sc">:.4f}</span><span class="ss"> &#39;</span> <span class="cf">for</span> key, value <span class="kw">in</span> logs.items()])</span>
 <span id="cb30-32"><a href="#cb30-32"></a>    <span class="bu">print</span>(train_logs)</span></code></pre></div>
 <pre><code>## 
-## Epoch: 1 -  train_loss: 0.3079 
+## Epoch: 1 -  train_loss: 0.2927 
 ## 
-## Epoch: 2 -  train_loss: 0.1985 
+## Epoch: 2 -  train_loss: 0.1986 
 ## 
 ## Epoch: 3 -  train_loss: 0.1871 
 ## 
@@ -895,9 +895,9 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb36-9"><a href="#cb36-9"></a><span class="co"># alpha * N obs for ridge</span></span>
 <span id="cb36-10"><a href="#cb36-10"></a>ridge <span class="op">=</span> Ridge(alpha<span class="op">=</span>alpha<span class="op">*</span><span class="dv">1000</span>, solver<span class="op">=</span><span class="st">&#39;sag&#39;</span>).fit(x, y)</span>
 <span id="cb36-11"><a href="#cb36-11"></a><span class="bu">print</span>(ridge.coef_)</span></code></pre></div>
-<pre><code>## [0.00142596 0.07503111]</code></pre>
+<pre><code>## [0.00110112 0.07494251]</code></pre>
 <div class="sourceCode" id="cb38"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1"></a>ridge.intercept_</span></code></pre></div>
-<pre><code>## 0.49777143363688636</code></pre>
+<pre><code>## 0.49776617212765734</code></pre>
 </div>
 </div>
 
