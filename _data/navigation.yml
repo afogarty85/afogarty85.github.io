@@ -18,5 +18,8 @@ main:
   - title: "Applied NLP"
     url: /NLP/
 
+  - title: "Applied Bayes"
+    url: /Bayes/    
+
   - title: "CV"
     url: /files/CV.pdf
