@@ -85,7 +85,7 @@ analytics:
 author:
   name             : "Andrew Fogarty"
   avatar           : "profile.png"
-  bio              : "UC Berkeley MIDS Student"
+  bio              : "Senior Data Scientist, Microsoft Azure, CHIE"
   location         : "Charlottesville, VA"
   employer         :
   pubmed           :
@@ -225,6 +225,14 @@ defaults:
   - scope:
       path: ""
       type: NLP
+    values:
+      layout: single
+      author_profile: true
+
+  # _Bayes
+  - scope:
+      path: ""
+      type: Bayes
     values:
       layout: single
       author_profile: true
