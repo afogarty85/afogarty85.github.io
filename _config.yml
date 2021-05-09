@@ -205,6 +205,9 @@ collections:
   Bayes:
     output: true
     permalink: /:collection/:path/
+  Azure:
+    output: true
+    permalink: /:collection/:path/
 
 
 # Defaults
