@@ -241,6 +241,14 @@ defaults:
       layout: single
       author_profile: true
 
+  # _Azure
+  - scope:
+      path: ""
+      type: Azure
+    values:
+      layout: single
+      author_profile: true
+
   # _DL
   - scope:
       path: ""
@@ -293,6 +301,7 @@ defaults:
       author_profile: true
       share: true
       comment: true
+
   # _talks
   - scope:
       path: ""
