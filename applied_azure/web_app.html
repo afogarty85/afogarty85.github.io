@@ -1680,7 +1680,10 @@ summary {
 <li><a href="#establish-security">Establish Security</a></li>
 <li><a href="#automate-github-building">Automate GitHub Building</a></li>
 <li><a href="#switch-security-to-azure-active-directory---microsoft-tenant">Switch Security to Azure Active Directory - Microsoft Tenant</a></li>
-<li><a href="#establish-application-insights">Establish Application Insights</a></li>
+<li><a href="#establish-application-insights">Establish Application Insights</a>
+<ul>
+<li><a href="#tracking-authenticated-user-access">Tracking Authenticated User Access</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -1956,6 +1959,27 @@ cfg: { // Application Insights Configuration
 }});
 &lt;/script&gt;</code></pre>
 <p>We can now use Application Insights to monitor our static web app.</p>
+<div id="tracking-authenticated-user-access" class="section level2">
+<h2>Tracking Authenticated User Access</h2>
+<p>We can go a step further and log authenticated user access with our App Insights by adding the following JavaScript to our snippet above. In the code below, we use JavaScript to parse the JSON of our security information found in the URL extension <code>.auth/me</code> and save it into a few variables. We then send those variables into this line of code, <code>setAuthenticatedUserContext(authenticatedUserId: string, accountId?: string, storeInCookie = false)</code> as follows: <code>appInsights.setAuthenticatedUserContext(jsondata, jsondata2, true)</code></p>
+<pre class="python"><code>... //truncated code snippet 
+
+    instrumentationKey: &quot;INSTRUMENTATION_KEY&quot;
+}});
+
+  async function jsonparse1() {
+              let response = await fetch(&#39;https://static_web_App_url/.auth/me&#39;)
+              let users = await response.json()
+              var jsondata = users.clientPrincipal.userDetails
+              var jsondata2 = users.clientPrincipal.userId
+              console.log(users.clientPrincipal.userDetails)
+              //document.querySelector(&#39;#debug&#39;).innerText = jsondata
+              appInsights.setAuthenticatedUserContext(jsondata, jsondata2, true);
+      }
+  jsonparse1()
+
+//appInsights.setAuthenticatedUserContext(authUserId, accountId, true);</code></pre>
+</div>
 </div>
 
 
